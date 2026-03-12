@@ -51,28 +51,40 @@ def _load_recipients() -> list[tuple[str, str]]:
     Return a list of (email, name) tuples from all available sources.
 
     Priority:
-      1. DB subscribers (local runs)
-      2. SCHEDULER_RECIPIENTS env var (GitHub Actions)
-      3. Legacy SCHEDULER_RECIPIENT_EMAIL (backwards compat)
+      1. subscribers.json (committed to repo — works in both local and GitHub Actions)
+      2. DB subscribers (local runs, when DB exists)
+      3. SCHEDULER_RECIPIENTS env var (manual override)
+      4. Legacy SCHEDULER_RECIPIENT_EMAIL (backwards compat)
     """
     recipients: list[tuple[str, str]] = []
 
-    # 1. DB subscribers
+    # 1. subscribers.json — primary source, available in GitHub Actions checkout
     try:
-        db_path = Path(__file__).resolve().parent.parent / "data" / "reviews.db"
-        if db_path.exists():
-            from phase5.subscriber_store import get_connection, list_subscribers, ensure_table
-            conn = get_connection(db_path)
-            ensure_table(conn)
-            subs = list_subscribers(conn)
-            conn.close()
-            if subs:
-                recipients = [(s.email, s.name) for s in subs]
-                log.info("Loaded %d subscriber(s) from DB", len(recipients))
+        from phase5.subscriber_store import load_from_json
+        subs = load_from_json()
+        if subs:
+            recipients = [(s.email, s.name) for s in subs]
+            log.info("Loaded %d subscriber(s) from subscribers.json", len(recipients))
     except Exception as exc:
-        log.warning("Could not load DB subscribers: %s", exc)
+        log.warning("Could not load subscribers.json: %s", exc)
 
-    # 2. SCHEDULER_RECIPIENTS env var — "email" or "Name:email", comma-separated
+    # 2. DB subscribers (local fallback if JSON is empty/missing)
+    if not recipients:
+        try:
+            db_path = Path(__file__).resolve().parent.parent / "data" / "reviews.db"
+            if db_path.exists():
+                from phase5.subscriber_store import get_connection, list_subscribers, ensure_table
+                conn = get_connection(db_path)
+                ensure_table(conn)
+                subs = list_subscribers(conn)
+                conn.close()
+                if subs:
+                    recipients = [(s.email, s.name) for s in subs]
+                    log.info("Loaded %d subscriber(s) from DB", len(recipients))
+        except Exception as exc:
+            log.warning("Could not load DB subscribers: %s", exc)
+
+    # 3. SCHEDULER_RECIPIENTS env var — "email" or "Name:email", comma-separated
     if not recipients and SCHEDULER_RECIPIENTS:
         for entry in SCHEDULER_RECIPIENTS.split(","):
             entry = entry.strip()
@@ -86,7 +98,7 @@ def _load_recipients() -> list[tuple[str, str]]:
         if recipients:
             log.info("Loaded %d recipient(s) from SCHEDULER_RECIPIENTS env var", len(recipients))
 
-    # 3. Legacy single-recipient fallback
+    # 4. Legacy single-recipient fallback
     if not recipients and SCHEDULER_RECIPIENT_EMAIL:
         recipients = [(SCHEDULER_RECIPIENT_EMAIL, SCHEDULER_RECIPIENT_NAME)]
         log.info("Using legacy SCHEDULER_RECIPIENT_EMAIL: %s", SCHEDULER_RECIPIENT_EMAIL)

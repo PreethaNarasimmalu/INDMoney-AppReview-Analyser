@@ -1,15 +1,21 @@
 """
 Subscriber store — manages the weekly pulse email subscriber list.
 
-Stored in the same SQLite DB as reviews (data/reviews.db).
-Exposes: ensure_table, add_subscriber, list_subscribers, remove_subscriber.
+Primary store: SQLite `subscribers` table in `data/reviews.db`.
+Mirror store:  `subscribers.json` at the repo root — committed to git so
+               GitHub Actions can read the list without DB access.
+
+Every add/remove syncs both stores automatically.
 """
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "reviews.db"
+_REPO_ROOT  = Path(__file__).resolve().parent.parent
+DB_PATH     = _REPO_ROOT / "data" / "reviews.db"
+JSON_PATH   = _REPO_ROOT / "subscribers.json"
 
 
 @dataclass
@@ -18,6 +24,10 @@ class Subscriber:
     name: str
     subscribed_at: str  # ISO datetime string
 
+
+# ---------------------------------------------------------------------------
+# SQLite helpers
+# ---------------------------------------------------------------------------
 
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     path = db_path or DB_PATH
@@ -46,7 +56,10 @@ def add_subscriber(conn: sqlite3.Connection, email: str, name: str = "") -> bool
         (email.strip().lower(), name.strip()),
     )
     conn.commit()
-    return cur.rowcount > 0
+    if cur.rowcount > 0:
+        _sync_json(conn)
+        return True
+    return False
 
 
 def list_subscribers(conn: sqlite3.Connection) -> list[Subscriber]:
@@ -69,4 +82,33 @@ def remove_subscriber(conn: sqlite3.Connection, email: str) -> bool:
         (email.strip().lower(),),
     )
     conn.commit()
-    return cur.rowcount > 0
+    if cur.rowcount > 0:
+        _sync_json(conn)
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# JSON mirror — read by GitHub Actions scheduler
+# ---------------------------------------------------------------------------
+
+def _sync_json(conn: sqlite3.Connection, json_path: Path = JSON_PATH) -> None:
+    """Write current subscribers to subscribers.json (overwrites)."""
+    subs = list_subscribers(conn)
+    data = [{"email": s.email, "name": s.name} for s in subs]
+    json_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def load_from_json(json_path: Path = JSON_PATH) -> list[Subscriber]:
+    """Read subscribers from the JSON file (used by scheduler in GitHub Actions)."""
+    if not json_path.exists():
+        return []
+    try:
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+        return [
+            Subscriber(email=e["email"], name=e.get("name", ""), subscribed_at="")
+            for e in data
+            if e.get("email")
+        ]
+    except Exception:
+        return []
