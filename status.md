@@ -29,6 +29,14 @@
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
 
+### 2026-03-12 (DB retention policy added)
+- Added `purge_old_reviews(conn, retention_weeks)` to `phase1/review_store.py`
+- Deletes reviews older than 12 weeks on every run — DB stays bounded
+- `RETENTION_WEEKS = 12` added to `phase1/config.py` (configurable)
+- Called once per run after upsert, before analysis
+- Added 6 tests in `TestPurgeOldReviews` — all pass
+- Updated `architecture.md` with retention policy docs and design decision
+
 ### 2026-03-12 (Phase 4 complete)
 - Created `phase4/config.py`: IMAP host/port, Drafts folder, email subject prefix
 - Created `phase4/composer.py`: `compose()` builds `EmailMessage` with plain-text + HTML parts; `_escape_html()` XSS-safe HTML wrapper using `<pre>` tag

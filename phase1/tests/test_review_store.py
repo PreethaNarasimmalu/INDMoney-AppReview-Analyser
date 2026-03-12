@@ -14,6 +14,7 @@ from phase1.review_store import (
     upsert_reviews,
     load_reviews,
     count_reviews,
+    purge_old_reviews,
     _week_label,
 )
 
@@ -189,3 +190,49 @@ class TestCountReviews:
     def test_counts_all_rows(self, conn):
         upsert_reviews([_review("a"), _review("b"), _review("c")], conn)
         assert count_reviews(conn) == 3
+
+
+# ---------------------------------------------------------------------------
+# purge_old_reviews
+# ---------------------------------------------------------------------------
+
+class TestPurgeOldReviews:
+    def test_deletes_reviews_older_than_retention(self, conn):
+        old = _review("old review", days_ago=100)
+        recent = _review("recent review", days_ago=1)
+        upsert_reviews([old, recent], conn)
+        deleted = purge_old_reviews(conn, retention_weeks=12)
+        assert deleted == 1
+        assert count_reviews(conn) == 1
+
+    def test_keeps_reviews_within_retention(self, conn):
+        recent = _review("recent review", days_ago=7)
+        upsert_reviews([recent], conn)
+        deleted = purge_old_reviews(conn, retention_weeks=12)
+        assert deleted == 0
+        assert count_reviews(conn) == 1
+
+    def test_returns_zero_on_empty_db(self, conn):
+        deleted = purge_old_reviews(conn, retention_weeks=12)
+        assert deleted == 0
+
+    def test_deletes_multiple_old_reviews(self, conn):
+        old_reviews = [_review(f"old {i}", days_ago=100 + i) for i in range(5)]
+        recent = _review("recent", days_ago=3)
+        upsert_reviews(old_reviews + [recent], conn)
+        deleted = purge_old_reviews(conn, retention_weeks=12)
+        assert deleted == 5
+        assert count_reviews(conn) == 1
+
+    def test_exact_cutoff_boundary_kept(self, conn):
+        # review exactly at 12 weeks = 84 days should be kept (not older than cutoff)
+        boundary = _review("boundary review", days_ago=84)
+        upsert_reviews([boundary], conn)
+        deleted = purge_old_reviews(conn, retention_weeks=12)
+        assert deleted == 0
+
+    def test_older_than_boundary_deleted(self, conn):
+        just_over = _review("just over", days_ago=85)
+        upsert_reviews([just_over], conn)
+        deleted = purge_old_reviews(conn, retention_weeks=12)
+        assert deleted == 1

@@ -124,3 +124,19 @@ def load_reviews(
 def count_reviews(conn: sqlite3.Connection) -> int:
     """Total number of stored reviews."""
     return conn.execute("SELECT COUNT(*) FROM reviews").fetchone()[0]
+
+
+def purge_old_reviews(
+    conn: sqlite3.Connection,
+    retention_weeks: int,
+) -> int:
+    """
+    Delete reviews older than *retention_weeks* weeks.
+
+    Called once per run after upsert to keep the DB from growing unboundedly.
+    Returns the number of rows deleted.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(weeks=retention_weeks)).strftime("%Y-%m-%d")
+    cursor = conn.execute("DELETE FROM reviews WHERE date < ?", (cutoff,))
+    conn.commit()
+    return cursor.rowcount

@@ -31,6 +31,8 @@ App Store Reviews → Ingestion → Theme Grouping (Groq) → Weekly Note Genera
 - SQLite: `data/reviews.db`
 - Schema: `id, platform, rating, title, clean_text, date, week_label`
 - Deduplicated by review ID to support re-runs
+- **Retention policy:** on every run, reviews older than 12 weeks are deleted (`purge_old_reviews`) — DB stays bounded, no manual cleanup needed
+- Configurable via `RETENTION_WEEKS` in `phase1/config.py` (default: 12)
 
 **IN:** Google Play package name, date range config
 **OUT:** `reviews.db` with clean, PII-free review rows
@@ -344,6 +346,7 @@ MAX_THEMES=4
 | Email created as Draft, not auto-sent | Human review before delivery |
 | Credentials only in `.env` | No secrets in source; safe to open-source |
 | SQLite for local storage | Zero infrastructure, sufficient for weekly batch |
+| 12-week retention policy | DB stays bounded; anything older than the analysis window has no value |
 | Streamlit first, React+FastAPI later | Ship fast, upgrade UI when core is proven |
 
 ---
