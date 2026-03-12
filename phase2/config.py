@@ -2,7 +2,7 @@
 Phase 2 configuration — Groq LLM settings.
 """
 
-GROQ_MODEL = "llama3-70b-8192"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 MAX_TOKENS = 2048
 
 # Theme discovery
