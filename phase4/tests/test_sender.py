@@ -48,9 +48,16 @@ def _make_smtp_mock():
 class TestGetCredentials:
     def test_returns_address_and_password(self):
         with _mock_env("me@gmail.com", "secret1234"):
-            addr, pwd = _get_credentials()
-        assert addr == "me@gmail.com"
+            from_header, login_email, pwd = _get_credentials()
+        assert from_header == "me@gmail.com"
+        assert login_email == "me@gmail.com"
         assert pwd == "secret1234"
+
+    def test_display_name_format(self):
+        with _mock_env("Preetha <me@gmail.com>", "secret1234"):
+            from_header, login_email, pwd = _get_credentials()
+        assert from_header == "Preetha <me@gmail.com>"
+        assert login_email == "me@gmail.com"
 
     def test_missing_address_raises(self):
         with _mock_env(address="", password="secret"):
@@ -64,8 +71,9 @@ class TestGetCredentials:
 
     def test_strips_whitespace(self):
         with _mock_env(address="  me@gmail.com  ", password="  secret  "):
-            addr, pwd = _get_credentials()
-        assert addr == "me@gmail.com"
+            from_header, login_email, pwd = _get_credentials()
+        assert from_header == "me@gmail.com"
+        assert login_email == "me@gmail.com"
         assert pwd == "secret"
 
 
