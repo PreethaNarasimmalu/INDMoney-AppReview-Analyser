@@ -4,7 +4,7 @@
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1 | Data Ingestion (scraper + PII scrubber + SQLite) | ⏳ Pending |
+| Phase 1 | Data Ingestion (scraper + PII scrubber + SQLite) | ✅ Complete |
 | Phase 2 | Theme Grouping (Groq) | ⏳ Pending |
 | Phase 3 | Note Generation (Gemini) | ⏳ Pending |
 | Phase 4 | Email Draft (Gmail SMTP) | ⏳ Pending |
@@ -28,6 +28,14 @@
 - Confirmed Phase 1 has NO LLM — pure scraping + PII scrub + storage
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
+
+### 2026-03-12 (Phase 1 complete)
+- Implemented `phase1/pii_scrubber.py`: regex hard gate for emails, Indian/intl phones, URLs, UPI IDs, hex tokens; replaces all with `[REDACTED]`
+- Implemented `phase1/review_store.py`: SQLite helpers — `create_table`, `upsert_reviews` (INSERT OR IGNORE dedup by SHA-256 hash), `load_reviews` (date-window filter), `count_reviews`
+- Updated `phase1/models.py`: added `title` field and `review_hash` property (SHA-256 of date+rating+text) to `Review`
+- Added 76 new tests across `test_pii_scrubber.py` and `test_review_store.py`
+- All 88 phase1 tests pass (0 failures)
+- Note: PII scrubbing is regex-only; spaCy NER not added (not in requirements.txt)
 
 ---
 

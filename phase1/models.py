@@ -1,6 +1,7 @@
 """
 Phase 1 data models.
 """
+import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -11,6 +12,13 @@ class Review:
     text: str
     date: str            # ISO date string: YYYY-MM-DD
     thumbs_up: int = 0
+    title: str = ""      # review title (may be empty)
+
+    @property
+    def review_hash(self) -> str:
+        """Stable unique ID derived from content — used for deduplication."""
+        raw = f"{self.date}|{self.rating}|{self.text[:200]}"
+        return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
     def to_dict(self) -> dict:
         return {
@@ -18,6 +26,7 @@ class Review:
             "text": self.text,
             "date": self.date,
             "thumbs_up": self.thumbs_up,
+            "title": self.title,
         }
 
     @classmethod
@@ -33,6 +42,7 @@ class Review:
             text=raw.get("content", ""),
             date=at.strftime("%Y-%m-%d"),
             thumbs_up=int(raw.get("thumbsUpCount", 0)),
+            title=raw.get("title") or "",
         )
 
 

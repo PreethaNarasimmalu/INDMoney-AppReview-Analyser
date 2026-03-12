@@ -56,7 +56,7 @@ class TestReviewFromRaw:
     def test_to_dict_round_trip(self):
         r = Review(rating=3, text="OK app", date="2025-02-10", thumbs_up=1)
         d = r.to_dict()
-        assert d == {"rating": 3, "text": "OK app", "date": "2025-02-10", "thumbs_up": 1}
+        assert d == {"rating": 3, "text": "OK app", "date": "2025-02-10", "thumbs_up": 1, "title": ""}
 
 
 # ---------------------------------------------------------------------------
