@@ -225,43 +225,49 @@ with st.container(border=True):
     )
     weeks = st.selectbox(
         "Weeks of reviews",
-        options=list(range(1, 17)),
-        index=7,
-        format_func=lambda x: str(x),
+        options=[None] + list(range(1, 17)),
+        index=0,
+        format_func=lambda x: "Select number of weeks..." if x is None else str(x),
     )
-    max_reviews = st.number_input(
+    max_reviews = st.text_input(
         "Max reviews to fetch",
-        min_value=100, max_value=5000, value=1000, step=100,
+        placeholder="e.g. 500",
     )
     run_clicked = st.button("Run full pipeline", type="primary")
 
 if run_clicked:
-    from phase5.pipeline_runner import run_pipeline
+    _weeks_val = weeks
+    _max_val = max_reviews.strip() if max_reviews else ""
+    if _weeks_val is None:
+        st.error("Please select the number of weeks.")
+    elif not _max_val or not _max_val.isdigit() or not (100 <= int(_max_val) <= 5000):
+        st.error("Max reviews must be a number between 100 and 5000.")
+    else:
+        from phase5.pipeline_runner import run_pipeline
 
-    progress_bar = st.progress(0)
-    msg_slot     = st.empty()
+        progress_bar = st.progress(0)
+        msg_slot     = st.empty()
 
-    def _on_progress(msg: str, pct: int) -> None:
-        progress_bar.progress(pct)
-        msg_slot.markdown(
-            f'<div class="progress-step">● {msg}</div>',
-            unsafe_allow_html=True,
-        )
-        # Update status badges live as each stage completes
-        done = {s for s, threshold in _STAGE_THRESHOLDS.items() if pct >= threshold}
-        status_placeholder.markdown(_status_html(done), unsafe_allow_html=True)
+        def _on_progress(msg: str, pct: int) -> None:
+            progress_bar.progress(pct)
+            msg_slot.markdown(
+                f'<div class="progress-step">● {msg}</div>',
+                unsafe_allow_html=True,
+            )
+            done = {s for s, threshold in _STAGE_THRESHOLDS.items() if pct >= threshold}
+            status_placeholder.markdown(_status_html(done), unsafe_allow_html=True)
 
-    try:
-        result = run_pipeline(weeks=weeks, max_reviews=int(max_reviews), on_progress=_on_progress)
-        st.session_state["last_result"] = result
-        st.session_state.pop("report_expanded", None)
-        progress_bar.progress(100)
-        msg_slot.success("Pipeline complete!")
-        st.rerun()
-    except Exception as exc:
-        progress_bar.empty()
-        msg_slot.empty()
-        st.error(f"Pipeline failed: {exc}")
+        try:
+            result = run_pipeline(weeks=_weeks_val, max_reviews=int(_max_val), on_progress=_on_progress)
+            st.session_state["last_result"] = result
+            st.session_state.pop("report_expanded", None)
+            progress_bar.progress(100)
+            msg_slot.success("Pipeline complete!")
+            st.rerun()
+        except Exception as exc:
+            progress_bar.empty()
+            msg_slot.empty()
+            st.error(f"Pipeline failed: {exc}")
 
 # ---------------------------------------------------------------------------
 # 3–5  Only shown once a result exists
@@ -386,9 +392,6 @@ with st.container(border=True):
                     _c2.close()
                     st.rerun()
         else:
-            st.markdown(
-                '<p style="font-size:13px;color:#9CA3AF;margin:4px 0;">No subscribers yet.</p>',
-                unsafe_allow_html=True,
-            )
+            pass
     except Exception:
         pass
