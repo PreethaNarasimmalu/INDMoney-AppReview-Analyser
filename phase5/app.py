@@ -163,32 +163,41 @@ st.markdown("""
 result = st.session_state.get("last_result")
 has_result = result is not None
 
+# Map progress % → which badges should be green
+_STAGE_THRESHOLDS = {
+    "Reviews":    20,
+    "Themes":     50,
+    "Grouped":    60,
+    "Report":     90,
+    "Draft email": 100,
+}
+
 
 def _badge(label: str, active: bool) -> str:
     cls = "badge badge-on" if active else "badge"
     return f'<span class="{cls}">{label}</span>'
 
 
-# ---------------------------------------------------------------------------
-# 1. Status card
-# ---------------------------------------------------------------------------
-date_html = (
-    f'<span class="badge-date">Report date: {result.week_label}</span>'
-    if has_result else ""
-)
-st.markdown(f"""
+def _status_html(stages_done: set[str], week_label: str = "") -> str:
+    date_html = f'<span class="badge-date">Report date: {week_label}</span>' if week_label else ""
+    badges = " ".join(_badge(s, s in stages_done) for s in _STAGE_THRESHOLDS)
+    return f"""
 <div class="card">
   <div class="card-title">Status</div>
-  <div class="badge-row">
-    {_badge("Reviews",     has_result)}
-    {_badge("Themes",      has_result)}
-    {_badge("Grouped",     has_result)}
-    {_badge("Report",      has_result)}
-    {_badge("Draft email", has_result)}
-    {date_html}
-  </div>
-</div>
-""", unsafe_allow_html=True)
+  <div class="badge-row">{badges}{date_html}</div>
+</div>"""
+
+
+# ---------------------------------------------------------------------------
+# 1. Status card  (st.empty so pipeline can update badges live)
+# ---------------------------------------------------------------------------
+status_placeholder = st.empty()
+
+_initial_stages = set(_STAGE_THRESHOLDS.keys()) if has_result else set()
+status_placeholder.markdown(
+    _status_html(_initial_stages, result.week_label if has_result else ""),
+    unsafe_allow_html=True,
+)
 
 # ---------------------------------------------------------------------------
 # 2. Run pipeline card
@@ -216,25 +225,28 @@ if run_clicked:
     from phase5.pipeline_runner import run_pipeline
 
     progress_bar = st.progress(0)
-    status_slot  = st.empty()
+    msg_slot     = st.empty()
 
     def _on_progress(msg: str, pct: int) -> None:
         progress_bar.progress(pct)
-        status_slot.markdown(
+        msg_slot.markdown(
             f'<div class="progress-step">● {msg}</div>',
             unsafe_allow_html=True,
         )
+        # Update status badges live as each stage completes
+        done = {s for s, threshold in _STAGE_THRESHOLDS.items() if pct >= threshold}
+        status_placeholder.markdown(_status_html(done), unsafe_allow_html=True)
 
     try:
         result = run_pipeline(weeks=weeks, max_reviews=int(max_reviews), on_progress=_on_progress)
         st.session_state["last_result"] = result
         st.session_state.pop("report_expanded", None)
         progress_bar.progress(100)
-        status_slot.success("Pipeline complete!")
+        msg_slot.success("Pipeline complete!")
         st.rerun()
     except Exception as exc:
         progress_bar.empty()
-        status_slot.empty()
+        msg_slot.empty()
         st.error(f"Pipeline failed: {exc}")
 
 # ---------------------------------------------------------------------------

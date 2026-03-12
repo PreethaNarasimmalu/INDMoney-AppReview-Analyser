@@ -50,6 +50,38 @@ Rules:
 """
 
 
+def _sample_by_rating(reviews: list[dict], n: int) -> list[dict]:
+    """
+    Sample up to n reviews spread proportionally across star ratings 1–5.
+
+    Each non-empty rating bucket contributes floor(n / num_buckets) reviews,
+    remainder goes to the largest buckets first. This prevents theme discovery
+    from being dominated by whichever rating has the most raw volume.
+    """
+    from collections import defaultdict
+
+    buckets: dict[int, list[dict]] = defaultdict(list)
+    for r in reviews:
+        buckets[r.get("rating", 3)].append(r)
+
+    non_empty = sorted(
+        [(rating, revs) for rating, revs in buckets.items() if revs],
+        key=lambda x: len(x[1]),
+        reverse=True,
+    )
+    if not non_empty:
+        return []
+
+    per_bucket, remainder = divmod(n, len(non_empty))
+
+    sampled: list[dict] = []
+    for i, (_, bucket_reviews) in enumerate(non_empty):
+        take = per_bucket + (1 if i < remainder else 0)
+        sampled.extend(bucket_reviews[:take])
+
+    return sampled[:n]
+
+
 def discover_themes(reviews: list[dict], client: Groq) -> ThemeList:
     """
     Send reviews to Groq and return a ThemeList of 3–5 discovered themes.
@@ -69,7 +101,7 @@ def discover_themes(reviews: list[dict], client: Groq) -> ThemeList:
     if not reviews:
         raise ValueError("reviews list is empty after filtering — nothing to discover themes from")
 
-    capped = reviews[:MAX_REVIEWS_FOR_DISCOVERY]
+    capped = _sample_by_rating(reviews, MAX_REVIEWS_FOR_DISCOVERY)
     review_text = "\n".join(
         f"[{r['date']} | {r['rating']}★] {r['clean_text'][:REVIEW_TEXT_TRUNCATE]}"
         for r in capped
