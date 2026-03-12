@@ -118,12 +118,15 @@ class TestComposeBodyParts:
     def test_html_contains_markdown_content(self):
         msg = _compose()
         html = msg.get_body(preferencelist=("html",))
-        assert "TOP THEMES" in html.get_content()
+        assert "Login Issues" in html.get_content()
 
-    def test_html_contains_pre_tag(self):
+    def test_html_contains_section_titles(self):
         msg = _compose()
         html = msg.get_body(preferencelist=("html",))
-        assert "<pre>" in html.get_content()
+        content = html.get_content()
+        assert "Top Themes" in content
+        assert "User Voices" in content
+        assert "Action Ideas" in content
 
     def test_html_is_valid_html(self):
         msg = _compose()
@@ -201,7 +204,7 @@ class TestEscapeHtml:
 
     def test_html_in_markdown_escaped(self):
         msg = compose(
-            markdown="Review with <script>alert('xss')</script> content and some more words here",
+            markdown="TOP THEMES\n  1. XSS Theme — Review with <script>alert('xss')</script> content here",
             week_label="Week of 2026-03-09",
             recipient_name="Team",
             recipient_email="team@example.com",
