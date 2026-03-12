@@ -1,23 +1,21 @@
 """
 Phase 4 — Email Sender.
 
-Creates a draft in the Gmail Drafts folder via IMAP APPEND.
-Never auto-sends — the draft sits in Drafts for human review.
+Sends the weekly pulse email via Gmail SMTP (TLS on port 587).
 
 Credentials loaded from .env:
   GMAIL_ADDRESS       — your Gmail address
   GMAIL_APP_PASSWORD  — 16-char Google App Password (not your login password)
 
 IN:  EmailMessage from composer.compose()
-OUT: Draft in Gmail Drafts folder
+OUT: Email sent to recipient
 """
 
-import imaplib
 import os
-import time
+import smtplib
 from email.message import EmailMessage
 
-from phase4.config import GMAIL_IMAP_HOST, GMAIL_IMAP_PORT, GMAIL_DRAFTS_FOLDER
+from phase4.config import GMAIL_SMTP_HOST, GMAIL_SMTP_PORT
 
 
 def _get_credentials() -> tuple[str, str]:
@@ -31,30 +29,22 @@ def _get_credentials() -> tuple[str, str]:
     return address, password
 
 
-def create_draft(msg: EmailMessage) -> None:
+def send_email(msg: EmailMessage) -> None:
     """
-    Append an EmailMessage to the Gmail Drafts folder via IMAP.
+    Send an EmailMessage via Gmail SMTP.
 
     Args:
         msg: composed EmailMessage from composer.compose()
 
     Raises:
         ValueError: if Gmail credentials are missing from .env
-        imaplib.IMAP4.error: if IMAP login or append fails
+        smtplib.SMTPException: if login or send fails
     """
     address, password = _get_credentials()
 
-    imap = imaplib.IMAP4_SSL(GMAIL_IMAP_HOST, GMAIL_IMAP_PORT)
-    try:
-        imap.login(address, password)
-        imap.append(
-            GMAIL_DRAFTS_FOLDER,
-            "\\Draft",
-            imaplib.Time2Internaldate(time.time()),
-            msg.as_bytes(),
-        )
-    finally:
-        try:
-            imap.logout()
-        except Exception:
-            pass
+    with smtplib.SMTP(GMAIL_SMTP_HOST, GMAIL_SMTP_PORT) as smtp:
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.ehlo()
+        smtp.login(address, password)
+        smtp.send_message(msg)

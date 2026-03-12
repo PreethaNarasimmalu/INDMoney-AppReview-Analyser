@@ -1,16 +1,16 @@
 """
-Tests for phase4.sender — no real IMAP connections.
+Tests for phase4.sender — no real SMTP connections.
 All network calls are mocked.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 from email.message import EmailMessage
 
-from phase4.sender import create_draft, _get_credentials
-from phase4.config import GMAIL_IMAP_HOST, GMAIL_IMAP_PORT, GMAIL_DRAFTS_FOLDER
+from phase4.sender import send_email, _get_credentials
+from phase4.config import GMAIL_SMTP_HOST, GMAIL_SMTP_PORT
 
-PATCH_IMAP = "phase4.sender.imaplib.IMAP4_SSL"
+PATCH_SMTP = "phase4.sender.smtplib.SMTP"
 PATCH_ENV = "phase4.sender.os.getenv"
 
 
@@ -32,6 +32,13 @@ def _mock_env(address: str = "me@gmail.com", password: str = "app-pass-word-1234
     def _getenv(key, default=""):
         return {"GMAIL_ADDRESS": address, "GMAIL_APP_PASSWORD": password}.get(key, default)
     return patch(PATCH_ENV, side_effect=_getenv)
+
+
+def _make_smtp_mock():
+    mock_smtp = MagicMock()
+    mock_smtp.__enter__ = MagicMock(return_value=mock_smtp)
+    mock_smtp.__exit__ = MagicMock(return_value=False)
+    return mock_smtp
 
 
 # ---------------------------------------------------------------------------
@@ -63,90 +70,66 @@ class TestGetCredentials:
 
 
 # ---------------------------------------------------------------------------
-# create_draft — IMAP interactions
+# send_email — SMTP interactions
 # ---------------------------------------------------------------------------
 
-class TestCreateDraft:
-    def test_connects_to_gmail_imap(self):
-        mock_imap = MagicMock()
-        with patch(PATCH_IMAP, return_value=mock_imap), _mock_env():
-            create_draft(_make_msg())
-        # IMAP4_SSL called with correct host and port
-        from phase4.sender import imaplib
-        with patch(PATCH_IMAP) as MockIMAP, _mock_env():
-            MockIMAP.return_value = mock_imap
-            create_draft(_make_msg())
-        MockIMAP.assert_called_once_with(GMAIL_IMAP_HOST, GMAIL_IMAP_PORT)
+class TestSendEmail:
+    def test_connects_to_gmail_smtp(self):
+        mock_smtp = _make_smtp_mock()
+        with patch(PATCH_SMTP, return_value=mock_smtp) as MockSMTP, _mock_env():
+            send_email(_make_msg())
+        MockSMTP.assert_called_once_with(GMAIL_SMTP_HOST, GMAIL_SMTP_PORT)
+
+    def test_starts_tls(self):
+        mock_smtp = _make_smtp_mock()
+        with patch(PATCH_SMTP, return_value=mock_smtp), _mock_env():
+            send_email(_make_msg())
+        mock_smtp.starttls.assert_called_once()
 
     def test_logs_in_with_credentials(self):
-        mock_imap = MagicMock()
-        with patch(PATCH_IMAP, return_value=mock_imap), \
+        mock_smtp = _make_smtp_mock()
+        with patch(PATCH_SMTP, return_value=mock_smtp), \
              _mock_env("me@gmail.com", "myapppass"):
-            create_draft(_make_msg())
-        mock_imap.login.assert_called_once_with("me@gmail.com", "myapppass")
+            send_email(_make_msg())
+        mock_smtp.login.assert_called_once_with("me@gmail.com", "myapppass")
 
-    def test_appends_to_drafts_folder(self):
-        mock_imap = MagicMock()
+    def test_sends_message(self):
+        mock_smtp = _make_smtp_mock()
         msg = _make_msg()
-        with patch(PATCH_IMAP, return_value=mock_imap), _mock_env():
-            create_draft(msg)
-        append_call = mock_imap.append.call_args
-        assert append_call[0][0] == GMAIL_DRAFTS_FOLDER
+        with patch(PATCH_SMTP, return_value=mock_smtp), _mock_env():
+            send_email(msg)
+        mock_smtp.send_message.assert_called_once_with(msg)
 
-    def test_appends_with_draft_flag(self):
-        mock_imap = MagicMock()
-        msg = _make_msg()
-        with patch(PATCH_IMAP, return_value=mock_imap), _mock_env():
-            create_draft(msg)
-        append_call = mock_imap.append.call_args
-        assert "\\Draft" in append_call[0][1]
-
-    def test_appends_message_bytes(self):
-        mock_imap = MagicMock()
-        msg = _make_msg()
-        with patch(PATCH_IMAP, return_value=mock_imap), _mock_env():
-            create_draft(msg)
-        append_call = mock_imap.append.call_args
-        assert append_call[0][3] == msg.as_bytes()
-
-    def test_logout_called_after_append(self):
-        mock_imap = MagicMock()
-        with patch(PATCH_IMAP, return_value=mock_imap), _mock_env():
-            create_draft(_make_msg())
-        mock_imap.logout.assert_called_once()
-
-    def test_logout_called_even_if_append_fails(self):
-        mock_imap = MagicMock()
-        mock_imap.append.side_effect = Exception("IMAP append failed")
-        with patch(PATCH_IMAP, return_value=mock_imap), _mock_env():
-            with pytest.raises(Exception, match="IMAP append failed"):
-                create_draft(_make_msg())
-        mock_imap.logout.assert_called_once()
-
-    def test_missing_credentials_raises_before_imap(self):
-        with patch(PATCH_IMAP) as MockIMAP, _mock_env(address="", password=""):
+    def test_missing_credentials_raises_before_smtp(self):
+        with patch(PATCH_SMTP) as MockSMTP, _mock_env(address="", password=""):
             with pytest.raises(ValueError):
-                create_draft(_make_msg())
-        MockIMAP.assert_not_called()
+                send_email(_make_msg())
+        MockSMTP.assert_not_called()
+
+    def test_ehlo_called(self):
+        mock_smtp = _make_smtp_mock()
+        with patch(PATCH_SMTP, return_value=mock_smtp), _mock_env():
+            send_email(_make_msg())
+        assert mock_smtp.ehlo.call_count >= 1
 
 
 # ---------------------------------------------------------------------------
-# create_draft — message content preserved
+# send_email — message content preserved
 # ---------------------------------------------------------------------------
 
-class TestCreateDraftMessageContent:
-    def test_subject_preserved_in_bytes(self):
-        mock_imap = MagicMock()
+class TestSendEmailMessageContent:
+    def test_subject_preserved(self):
+        mock_smtp = _make_smtp_mock()
         msg = _make_msg()
-        with patch(PATCH_IMAP, return_value=mock_imap), _mock_env():
-            create_draft(msg)
-        appended_bytes = mock_imap.append.call_args[0][3]
-        assert b"INDMoney App Review Pulse" in appended_bytes
+        with patch(PATCH_SMTP, return_value=mock_smtp), _mock_env():
+            send_email(msg)
+        sent_msg = mock_smtp.send_message.call_args[0][0]
+        assert "INDMoney App Review Pulse" in sent_msg["Subject"]
 
-    def test_recipient_preserved_in_bytes(self):
-        mock_imap = MagicMock()
+    def test_recipient_preserved(self):
+        mock_smtp = _make_smtp_mock()
         msg = _make_msg()
-        with patch(PATCH_IMAP, return_value=mock_imap), _mock_env():
-            create_draft(msg)
-        appended_bytes = mock_imap.append.call_args[0][3]
-        assert b"product@indmoney.com" in appended_bytes
+        with patch(PATCH_SMTP, return_value=mock_smtp), _mock_env():
+            send_email(msg)
+        sent_msg = mock_smtp.send_message.call_args[0][0]
+        assert "product@indmoney.com" in sent_msg["To"]
