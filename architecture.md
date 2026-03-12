@@ -147,22 +147,28 @@ ACTION IDEAS
 
 **Goal:** Manage the full pipeline from a browser.
 
-### Dashboard (main page)
-- Review window (weeks) + max reviews inputs
-- **Run Now** button — triggers full pipeline
-- Live progress per phase (`st.progress`)
-- Last run summary (date, reviews count, themes count)
-- Rendered weekly pulse note inline
-- Download Report button (`.md` export)
-- Send Email form (recipient name + email entered inline → Confirm & Send)
+### Layout & Branding
+- INDMoney brand colors: `#2DB34A` green, `#1A1A1A` near-black, `#F7F8FA` background
+- Sidebar hidden entirely; all controls inline in main content area
+- `sys.path` fix at top of every page file so Streamlit can resolve package imports regardless of working directory
+
+### Dashboard (`phase5/app.py`) — vertical section-card layout
+1. **Status card** — five pipeline stage badges (Reviews → Themes → Grouped → Report → Draft email); greyed out until pipeline completes, then all turn green with report date shown
+2. **Run pipeline card** — description text, weeks dropdown (1–16), max reviews input, **Run full pipeline** button; live `st.progress` bar during execution; `st.rerun()` on success to refresh status badges
+3. **View report card** *(post-run only)* — "Load latest report" toggle button; shows pulse markdown in a code block when expanded
+4. **Download report card** *(post-run only)* — Download `.md` button
+5. **Send email card** *(post-run only)* — recipient email + optional name fields, Send button; sends via `phase4.sender`
 
 ### Reviews Page (`phase5/pages/1_Reviews.py`)
-- Filterable table: platform, rating, theme, date range
-- No PII visible (scrubbed at ingestion)
+- All filters inline (no sidebar): date window, rating multiselect, theme, keyword search — 4-column row
+- Filterable dataframe of PII-scrubbed reviews
 
 ### Themes Page (`phase5/pages/2_Themes.py`)
-- Theme cards: label, description, review count, average rating
+- Theme cards: label, description, green review-count badge, star rating (filled stars in `#2DB34A`)
 - Expandable to show all reviews under that theme
+
+### Bug fixes
+- Fixed `'NoneType' object has no attribute 'parent'` on Run Now: `pipeline_runner.py` was passing `db_path=None` to `get_connection()`, overriding its default; now only passes `db_path` when not `None`
 
 ---
 

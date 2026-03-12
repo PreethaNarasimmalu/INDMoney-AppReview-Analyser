@@ -29,6 +29,19 @@
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
 
+### 2026-03-12 (Phase 5 UI redesign + bug fixes)
+- Fixed `'NoneType' object has no attribute 'parent'` crash on Run Now: `pipeline_runner.py` was passing `db_path=None` explicitly to `get_connection()`, overriding its default; guarded with `if db_path is not None`
+- Redesigned `phase5/app.py` with INDMoney brand colors (`#2DB34A`, `#1A1A1A`, `#F7F8FA`) and vertical section-card layout matching reference UI structure:
+  - **Status card** — pipeline stage badges (greyed → green after run, with report date)
+  - **Run pipeline card** — description, weeks dropdown, max reviews input, "Run full pipeline" button; `st.rerun()` on success
+  - **View report card** — "Load latest report" toggle; post-run only
+  - **Download report card** — Download `.md`; post-run only
+  - **Send email card** — recipient email + name fields; post-run only
+- Removed sidebar entirely from all three pages (CSS `display: none` + `initial_sidebar_state="collapsed"`)
+- Added `sys.path` fix at top of `app.py`, `1_Reviews.py`, `2_Themes.py` so all phase imports resolve correctly when Streamlit runs from a subdirectory
+- Redesigned `phase5/pages/1_Reviews.py`: filters moved inline as 4-column row (no sidebar)
+- Redesigned `phase5/pages/2_Themes.py`: theme cards with green review-count badges and coloured star ratings
+
 ### 2026-03-12 (Phase 5 complete)
 - Created `phase5/pipeline_runner.py`: orchestrates all 4 phases; accepts `on_progress` callback for live UI updates; returns `PipelineResult` dataclass
 - Created `phase5/app.py`: Streamlit dashboard — Run Now button, live progress bar, metrics (reviews, new, themes, purged), pulse note display, download .md, Send Email form
