@@ -18,9 +18,23 @@ load_dotenv()
 
 st.set_page_config(
     page_title="INDMoney App Review Pulse",
-    page_icon="📱",
+    page_icon="https://www.indmoney.com/favicon.ico",
     layout="wide",
     initial_sidebar_state="collapsed",
+)
+
+# Inject INDMoney logo as favicon (overrides Streamlit default)
+_IND_FAVICON = (
+    "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmci"
+    "IHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzEiIGZp"
+    "bGw9IiMxQTFBMUEiLz4KICA8dGV4dCB4PSIzMiIgeT0iNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCxI"
+    "ZWx2ZXRpY2Esc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIKICAgICAgICBmb250LXNpemU9"
+    "IjIyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgbGV0dGVyLXNwYWNpbmc9IjEi"
+    "PklORDwvdGV4dD4KPC9zdmc+"
+)
+st.markdown(
+    f'<link rel="shortcut icon" href="{_IND_FAVICON}">',
+    unsafe_allow_html=True,
 )
 
 # ---------------------------------------------------------------------------
