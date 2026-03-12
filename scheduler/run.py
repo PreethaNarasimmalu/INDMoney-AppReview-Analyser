@@ -46,9 +46,12 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-def _load_recipients() -> list[tuple[str, str]]:
+def _load_recipients() -> tuple[list[tuple[str, str]], bool]:
     """
-    Return a list of (email, name) tuples from all available sources.
+    Return (recipients, is_subscriber_list) where:
+    - recipients: list of (email, name) tuples
+    - is_subscriber_list: True when loaded from subscribers.json or DB
+                          (these get an unsubscribe link in the email)
 
     Priority:
       1. subscribers.json (committed to repo — works in both local and GitHub Actions)
@@ -65,27 +68,28 @@ def _load_recipients() -> list[tuple[str, str]]:
         if subs:
             recipients = [(s.email, s.name) for s in subs]
             log.info("Loaded %d subscriber(s) from subscribers.json", len(recipients))
+            return recipients, True
     except Exception as exc:
         log.warning("Could not load subscribers.json: %s", exc)
 
     # 2. DB subscribers (local fallback if JSON is empty/missing)
-    if not recipients:
-        try:
-            db_path = Path(__file__).resolve().parent.parent / "data" / "reviews.db"
-            if db_path.exists():
-                from phase5.subscriber_store import get_connection, list_subscribers, ensure_table
-                conn = get_connection(db_path)
-                ensure_table(conn)
-                subs = list_subscribers(conn)
-                conn.close()
-                if subs:
-                    recipients = [(s.email, s.name) for s in subs]
-                    log.info("Loaded %d subscriber(s) from DB", len(recipients))
-        except Exception as exc:
-            log.warning("Could not load DB subscribers: %s", exc)
+    try:
+        db_path = Path(__file__).resolve().parent.parent / "data" / "reviews.db"
+        if db_path.exists():
+            from phase5.subscriber_store import get_connection, list_subscribers, ensure_table
+            conn = get_connection(db_path)
+            ensure_table(conn)
+            subs = list_subscribers(conn)
+            conn.close()
+            if subs:
+                recipients = [(s.email, s.name) for s in subs]
+                log.info("Loaded %d subscriber(s) from DB", len(recipients))
+                return recipients, True
+    except Exception as exc:
+        log.warning("Could not load DB subscribers: %s", exc)
 
     # 3. SCHEDULER_RECIPIENTS env var — "email" or "Name:email", comma-separated
-    if not recipients and SCHEDULER_RECIPIENTS:
+    if SCHEDULER_RECIPIENTS:
         for entry in SCHEDULER_RECIPIENTS.split(","):
             entry = entry.strip()
             if not entry:
@@ -97,17 +101,19 @@ def _load_recipients() -> list[tuple[str, str]]:
                 recipients.append((entry, ""))
         if recipients:
             log.info("Loaded %d recipient(s) from SCHEDULER_RECIPIENTS env var", len(recipients))
+            return recipients, False
 
     # 4. Legacy single-recipient fallback
-    if not recipients and SCHEDULER_RECIPIENT_EMAIL:
+    if SCHEDULER_RECIPIENT_EMAIL:
         recipients = [(SCHEDULER_RECIPIENT_EMAIL, SCHEDULER_RECIPIENT_NAME)]
         log.info("Using legacy SCHEDULER_RECIPIENT_EMAIL: %s", SCHEDULER_RECIPIENT_EMAIL)
+        return recipients, False
 
-    return recipients
+    return recipients, False
 
 
 def main() -> None:
-    recipients = _load_recipients()
+    recipients, is_subscriber_list = _load_recipients()
 
     if not recipients:
         log.error(
@@ -147,6 +153,7 @@ def main() -> None:
                 recipient_name=name,
                 recipient_email=email,
                 sender_address=sender_address,
+                include_unsubscribe=is_subscriber_list,
             )
             send_email(msg)
             log.info("Email sent to %s", email)

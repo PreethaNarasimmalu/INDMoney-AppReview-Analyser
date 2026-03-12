@@ -201,9 +201,7 @@ _HTML_WRAPPER = """\
       {actions_section}
     </div>
     <div class="footer">
-      Auto-generated from Google Play reviews &bull; {week_label}<br>
-      <a href="https://indmoney-appreview-analyser.streamlit.app/Unsubscribe?email={recipient_email}"
-         style="color:#aaa;text-decoration:underline;">Unsubscribe</a>
+      Auto-generated from Google Play reviews &bull; {week_label}{unsubscribe_html}
     </div>
   </div>
 </body>
@@ -343,11 +341,19 @@ def _build_actions_html(lines: list[str]) -> str:
     )
 
 
-def _markdown_to_html(markdown: str, week_label: str, recipient_email: str = "") -> str:
+def _markdown_to_html(markdown: str, week_label: str, recipient_email: str = "", include_unsubscribe: bool = False) -> str:
     sections = _parse_sections(markdown)
+    if include_unsubscribe and recipient_email:
+        unsubscribe_html = (
+            f'<br><a href="https://indmoney-appreview-analyser.streamlit.app/Unsubscribe'
+            f'?email={_escape_html(recipient_email)}"'
+            f' style="color:#aaa;text-decoration:underline;">Unsubscribe</a>'
+        )
+    else:
+        unsubscribe_html = ""
     return _HTML_WRAPPER.format(
         week_label=_escape_html(week_label),
-        recipient_email=_escape_html(recipient_email),
+        unsubscribe_html=unsubscribe_html,
         themes_section=_build_themes_html(sections["TOP THEMES"]),
         voices_section=_build_voices_html(sections["USER VOICES"]),
         working_section=_build_working_html(sections["WHAT'S WORKING"]),
@@ -365,6 +371,7 @@ def compose(
     recipient_name: str,
     recipient_email: str,
     sender_address: str,
+    include_unsubscribe: bool = False,
 ) -> EmailMessage:
     """
     Build an EmailMessage from the weekly pulse markdown.
@@ -400,7 +407,7 @@ def compose(
     msg["To"] = to_header
 
     msg.set_content(markdown)
-    msg.add_alternative(_markdown_to_html(markdown, week_label, recipient_email), subtype="html")
+    msg.add_alternative(_markdown_to_html(markdown, week_label, recipient_email, include_unsubscribe), subtype="html")
 
     return msg
 
