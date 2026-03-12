@@ -10,9 +10,9 @@ MIN_THEMES = 3
 MAX_THEMES = 5
 
 # Classifier
-CLASSIFIER_BATCH_SIZE = 30       # reviews per Groq call
-REVIEW_TEXT_TRUNCATE = 200       # chars per review in prompts
-MAX_REVIEWS_FOR_DISCOVERY = 500  # cap reviews fed to theme discovery
+CLASSIFIER_BATCH_SIZE = 20       # reviews per Groq call
+REVIEW_TEXT_TRUNCATE = 150       # chars per review in prompts
+MAX_REVIEWS_FOR_DISCOVERY = 150  # cap reviews fed to theme discovery (~8k tokens, under 12k TPM limit)
 
 # Validator
 MIN_REVIEWS_PER_THEME = 2        # themes with fewer reviews get merged

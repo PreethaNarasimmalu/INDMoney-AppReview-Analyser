@@ -46,7 +46,16 @@ st.markdown("""
     font-size: 15px; color: #8A94A6; margin: 0 0 36px;
   }
 
-  /* Cards */
+  /* Cards — override Streamlit's bordered container */
+  div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: white !important;
+    border: 1px solid #E4E7EC !important;
+    border-radius: 14px !important;
+    padding: 8px 14px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Pure-HTML cards (Status) */
   .card {
     background: white;
     border: 1px solid #E4E7EC;
@@ -184,28 +193,24 @@ st.markdown(f"""
 # ---------------------------------------------------------------------------
 # 2. Run pipeline card
 # ---------------------------------------------------------------------------
-st.markdown("""
-<div class="card">
-  <div class="card-title">Run pipeline</div>
-  <div class="card-desc">
-    Scrape reviews &rarr; discover themes &rarr; classify &rarr; generate report
-    &rarr; create draft email. This may take several minutes.
-  </div>
-""", unsafe_allow_html=True)
-
-weeks = st.selectbox(
-    "Weeks of reviews",
-    options=list(range(1, 17)),
-    index=7,
-    format_func=lambda x: str(x),
-)
-max_reviews = st.number_input(
-    "Max reviews to fetch",
-    min_value=100, max_value=5000, value=1000, step=100,
-)
-run_clicked = st.button("Run full pipeline", type="primary")
-
-st.markdown("</div>", unsafe_allow_html=True)
+with st.container(border=True):
+    st.markdown('<p class="card-title">Run pipeline</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="card-desc">Scrape reviews → discover themes → classify → generate report'
+        ' → create draft email. This may take several minutes.</p>',
+        unsafe_allow_html=True,
+    )
+    weeks = st.selectbox(
+        "Weeks of reviews",
+        options=list(range(1, 17)),
+        index=7,
+        format_func=lambda x: str(x),
+    )
+    max_reviews = st.number_input(
+        "Max reviews to fetch",
+        min_value=100, max_value=5000, value=1000, step=100,
+    )
+    run_clicked = st.button("Run full pipeline", type="primary")
 
 if run_clicked:
     from phase5.pipeline_runner import run_pipeline
@@ -238,70 +243,56 @@ if run_clicked:
 if has_result:
 
     # 3. View report card
-    st.markdown("""
-    <div class="card">
-      <div class="card-title">View report</div>
-    """, unsafe_allow_html=True)
-
-    if st.button("Load latest report", type="secondary"):
-        st.session_state["report_expanded"] = not st.session_state.get("report_expanded", False)
-
-    if st.session_state.get("report_expanded"):
-        st.code(result.pulse_markdown, language=None)
-
-    st.markdown("</div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown('<p class="card-title">View report</p>', unsafe_allow_html=True)
+        if st.button("Load latest report", type="secondary"):
+            st.session_state["report_expanded"] = not st.session_state.get("report_expanded", False)
+        if st.session_state.get("report_expanded"):
+            st.code(result.pulse_markdown, language=None)
 
     # 4. Download card
-    st.markdown("""
-    <div class="card">
-      <div class="card-title">Download report</div>
-      <div class="card-desc" style="margin-bottom:14px">
-        Save the weekly pulse as a Markdown file.
-      </div>
-    """, unsafe_allow_html=True)
-
-    st.download_button(
-        label="Download .md",
-        data=result.pulse_markdown,
-        file_name=f"weekly_pulse_{result.week_label.replace(' ', '_')}.md",
-        mime="text/plain",
-    )
-
-    st.markdown("</div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown('<p class="card-title">Download report</p>', unsafe_allow_html=True)
+        st.markdown(
+            '<p class="card-desc" style="margin-bottom:14px">Save the weekly pulse as a Markdown file.</p>',
+            unsafe_allow_html=True,
+        )
+        st.download_button(
+            label="Download .md",
+            data=result.pulse_markdown,
+            file_name=f"weekly_pulse_{result.week_label.replace(' ', '_')}.md",
+            mime="text/plain",
+        )
 
     # 5. Send email card
-    st.markdown("""
-    <div class="card">
-      <div class="card-title">Send email</div>
-      <div class="card-desc">
-        Send the latest report to an email address.
-        Optional name adds &ldquo;Hi name,&rdquo; at the start.
-      </div>
-    """, unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown('<p class="card-title">Send email</p>', unsafe_allow_html=True)
+        st.markdown(
+            '<p class="card-desc">Send the latest report to an email address. '
+            'Optional name adds "Hi name," at the start.</p>',
+            unsafe_allow_html=True,
+        )
+        with st.form("email_form"):
+            recipient_email = st.text_input("Recipient email", placeholder="e.g. you@indmoney.com")
+            recipient_name  = st.text_input("Recipient name (optional)", placeholder="e.g. Priya")
+            send_clicked = st.form_submit_button("Send email")
 
-    with st.form("email_form"):
-        recipient_email = st.text_input("Recipient email", placeholder="e.g. you@indmoney.com")
-        recipient_name  = st.text_input("Recipient name (optional)", placeholder="e.g. Priya")
-        send_clicked = st.form_submit_button("Send email")
-
-        if send_clicked:
-            if not recipient_email.strip():
-                st.error("Recipient email is required.")
-            else:
-                try:
-                    from phase4.composer import compose
-                    from phase4.sender import send_email, _get_credentials
-                    from_header, _, _ = _get_credentials()
-                    msg = compose(
-                        markdown=result.pulse_markdown,
-                        week_label=result.week_label,
-                        recipient_name=recipient_name,
-                        recipient_email=recipient_email,
-                        sender_address=from_header,
-                    )
-                    send_email(msg)
-                    st.success(f"Email sent to **{recipient_email}**!")
-                except Exception as exc:
-                    st.error(f"Failed to send email: {exc}")
-
-    st.markdown("</div>", unsafe_allow_html=True)
+            if send_clicked:
+                if not recipient_email.strip():
+                    st.error("Recipient email is required.")
+                else:
+                    try:
+                        from phase4.composer import compose
+                        from phase4.sender import send_email, _get_credentials
+                        from_header, _, _ = _get_credentials()
+                        msg = compose(
+                            markdown=result.pulse_markdown,
+                            week_label=result.week_label,
+                            recipient_name=recipient_name,
+                            recipient_email=recipient_email,
+                            sender_address=from_header,
+                        )
+                        send_email(msg)
+                        st.success(f"Email sent to **{recipient_email}**!")
+                    except Exception as exc:
+                        st.error(f"Failed to send email: {exc}")
