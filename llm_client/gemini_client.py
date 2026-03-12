@@ -23,9 +23,13 @@ def get_gemini_client():
     return genai.Client(api_key=api_key)
 
 
-def chat(client, prompt: str, model: str, max_tokens: int) -> str:
+def chat(client, prompt: str, model: str, max_tokens: int, json_mode: bool = True) -> str:
     """
     Send a single user prompt to Gemini and return the response text.
+
+    json_mode=True (default) sets response_mime_type="application/json" so
+    Gemini is forced to return valid JSON — prevents unterminated-string errors
+    caused by verbatim user quotes containing double-quote characters.
 
     Retries up to MAX_RETRIES times on rate-limit (429) and server (5xx) errors
     with exponential backoff. Auth errors (403) and bad requests (400) raise immediately.
@@ -44,10 +48,13 @@ def chat(client, prompt: str, model: str, max_tokens: int) -> str:
 
     for attempt in range(MAX_RETRIES + 1):
         try:
+            config_kwargs: dict = {"max_output_tokens": max_tokens}
+            if json_mode:
+                config_kwargs["response_mime_type"] = "application/json"
             response = client.models.generate_content(
                 model=model,
                 contents=prompt,
-                config=types.GenerateContentConfig(max_output_tokens=max_tokens),
+                config=types.GenerateContentConfig(**config_kwargs),
             )
             return response.text
 

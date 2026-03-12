@@ -172,7 +172,8 @@ ACTION IDEAS
 ### Bug fixes & resilience
 - Fixed `'NoneType' object has no attribute 'parent'`: `pipeline_runner.py` was passing `db_path=None` to `get_connection()`, overriding its default
 - Fixed Groq token limit (413): reduced `MAX_REVIEWS_FOR_DISCOVERY` 500→150, `REVIEW_TEXT_TRUNCATE` 200→150, `CLASSIFIER_BATCH_SIZE` 30→20
-- Fixed unterminated-string JSON parse errors: enabled JSON mode on all Groq calls via `response_format={"type":"json_object"}`
+- Fixed unterminated-string JSON parse errors on Groq calls: enabled JSON mode via `response_format={"type":"json_object"}` in `groq_client.py`
+- Fixed same unterminated-string error on Gemini calls (Phase 3): enabled JSON mode via `response_mime_type="application/json"` in `gemini_client.py` — root cause was verbatim user quotes in `representative_quote` field containing unescaped `"` characters
 - Fixed widgets rendering outside card boundary: replaced HTML `<div>` wrapping with `st.container(border=True)` + CSS override on `stVerticalBlockBorderWrapper`
 
 ---

@@ -29,6 +29,10 @@
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
 
+### 2026-03-12 (Fix Gemini unterminated-string JSON error)
+- Enabled JSON mode on Gemini calls (`response_mime_type="application/json"` in `gemini_client.py`) — same root cause as the earlier Groq fix; verbatim user quotes in `representative_quote` contained unescaped `"` characters breaking `json.loads()`
+- Phase 3 (Report) was failing after Groq Phase 2 completed successfully
+
 ### 2026-03-12 (Phase 5 — live status badges + proportional sampling)
 - Status card now uses `st.empty()` placeholder; `_on_progress` callback updates it live — badges turn green one-by-one as each stage completes (Reviews@20%, Themes@50%, Grouped@60%, Report@90%, Draft email@100%)
 - Added `_sample_by_rating()` in `phase2/theme_discovery.py`: distributes the 150-review cap proportionally across star-rating buckets (1★–5★) so theme discovery sees balanced signal; prevents all reviews being 1-star complaints
