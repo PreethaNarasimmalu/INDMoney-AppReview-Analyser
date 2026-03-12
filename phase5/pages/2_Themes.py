@@ -4,6 +4,11 @@ Phase 5 — Themes Page.
 Shows theme cards with review counts, ratings, and expandable review lists.
 """
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
 import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
@@ -13,9 +18,56 @@ from phase2.store import migrate, load_themes, load_classified_reviews
 
 load_dotenv()
 
-st.set_page_config(page_title="Themes — INDMoney Pulse", layout="wide")
-st.title("🏷 Themes")
-st.caption("Themes are discovered fresh each pipeline run from the current review window.")
+st.set_page_config(
+    page_title="Themes — INDMoney Pulse",
+    page_icon="🏷",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+st.markdown("""
+<style>
+  [data-testid="collapsedControl"] { display: none !important; }
+  section[data-testid="stSidebar"] { display: none !important; }
+  .stApp { background: #F7F8FA; }
+  .main .block-container { max-width: 1080px; padding: 2rem 2rem 4rem; }
+  .ind-topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding-bottom: 18px; border-bottom: 2px solid #E4E7EC; margin-bottom: 28px;
+  }
+  .ind-logo-circle {
+    width: 42px; height: 42px; background: #1A1A1A; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 12px; letter-spacing: -0.5px; flex-shrink: 0;
+  }
+  .ind-app-name { font-size: 22px; font-weight: 700; color: #1A1A1A; margin: 0; }
+  .ind-app-sub { font-size: 13px; color: #8A94A6; margin: 0; }
+  .theme-card {
+    background: white; border: 1px solid #E4E7EC; border-radius: 14px;
+    padding: 20px 24px; margin-bottom: 14px;
+  }
+  .theme-name { font-size: 15px; font-weight: 700; color: #1A1A1A; margin-bottom: 4px; }
+  .theme-desc { font-size: 13px; color: #8A94A6; margin-bottom: 10px; }
+  .theme-meta { display: flex; gap: 20px; align-items: center; margin-top: 6px; }
+  .theme-badge {
+    font-size: 12px; font-weight: 600; background: #F0FBF3;
+    color: #2DB34A; border-radius: 20px; padding: 3px 10px;
+  }
+  .theme-rating { font-size: 13px; color: #8A94A6; }
+  .stars-filled { color: #2DB34A; }
+  .stars-empty { color: #D1D5DB; }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="ind-topbar">
+  <div class="ind-logo-circle">IND</div>
+  <div>
+    <div class="ind-app-name">Themes</div>
+    <div class="ind-app-sub">Discovered fresh each pipeline run from the current review window</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Load data
@@ -48,22 +100,28 @@ for theme in themes:
         sum(r["rating"] for r in theme_reviews) / len(theme_reviews)
         if theme_reviews else 0.0
     )
-    stars = "★" * round(avg_rating) + "☆" * (5 - round(avg_rating))
+    filled = round(avg_rating)
+    stars_html = (
+        f'<span class="stars-filled">{"★" * filled}</span>'
+        f'<span class="stars-empty">{"★" * (5 - filled)}</span>'
+    )
 
-    with st.container(border=True):
-        col1, col2, col3 = st.columns([4, 1, 1])
-        col1.markdown(f"**{theme['label']}**")
-        col2.markdown(f"**{theme['review_count']}** reviews")
-        col3.markdown(f"{stars} {avg_rating:.1f}")
+    st.markdown(f"""
+    <div class="theme-card">
+      <div class="theme-name">{theme['label']}</div>
+      {"<div class='theme-desc'>" + theme['description'] + "</div>" if theme.get('description') else ""}
+      <div class="theme-meta">
+        <span class="theme-badge">{theme['review_count']} reviews</span>
+        <span class="theme-rating">{stars_html} {avg_rating:.1f}</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        if theme.get("description"):
-            st.caption(theme["description"])
-
-        if theme_reviews:
-            with st.expander(f"Show {len(theme_reviews)} reviews"):
-                df = pd.DataFrame(theme_reviews)[["date", "rating", "clean_text"]]
-                st.dataframe(
-                    df.rename(columns={"date": "Date", "rating": "Rating", "clean_text": "Review"}),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+    if theme_reviews:
+        with st.expander(f"Show {len(theme_reviews)} reviews for "{theme['label']}""):
+            df = pd.DataFrame(theme_reviews)[["date", "rating", "clean_text"]]
+            st.dataframe(
+                df.rename(columns={"date": "Date", "rating": "Rating", "clean_text": "Review"}),
+                use_container_width=True,
+                hide_index=True,
+            )
