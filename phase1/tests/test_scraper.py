@@ -243,7 +243,7 @@ class TestFetchReviewsDefaults:
     def test_default_app_id(self):
         with patch(PATCH_TARGET, return_value=([], None)) as mock_gp:
             fetch_reviews()
-        assert mock_gp.call_args.args[0] == "com.indmoney"
+        assert mock_gp.call_args.args[0] == "in.indwealth"
 
     def test_default_max_count_and_weeks(self):
         with patch(PATCH_TARGET, return_value=([], None)) as mock_gp:
