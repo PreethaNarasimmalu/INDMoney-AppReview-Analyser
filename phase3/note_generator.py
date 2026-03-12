@@ -203,13 +203,13 @@ def generate_action_ideas(
     raw = chat(genai, prompt, model=GEMINI_MODEL, max_tokens=MAX_TOKENS)
     data = parse_json_response(raw)
 
-    ideas = data.get("action_ideas", [])
-    if len(ideas) != 3:
-        raise ValueError(f"Expected 3 action ideas from Gemini, got {len(ideas)}")
+    ideas = data.get("action_ideas", [])[:3]
+    if len(ideas) < 3:
+        raise ValueError(f"Expected at least 3 action ideas from Gemini, got {len(ideas)}")
 
-    working = data.get("whats_working", [])
-    if len(working) != 3:
-        raise ValueError(f"Expected 3 whats_working items from Gemini, got {len(working)}")
+    working = data.get("whats_working", [])[:3]
+    if len(working) < 3:
+        raise ValueError(f"Expected at least 3 whats_working items from Gemini, got {len(working)}")
 
     return (
         [str(idea).strip() for idea in ideas],
