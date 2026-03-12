@@ -223,9 +223,11 @@ with st.container(border=True):
         ' → create draft email. This may take several minutes.</p>',
         unsafe_allow_html=True,
     )
-    weeks = st.text_input(
+    weeks = st.selectbox(
         "Weeks of reviews",
-        placeholder="e.g. 4",
+        options=[None] + list(range(1, 17)),
+        index=0,
+        format_func=lambda x: "Select number of weeks..." if x is None else str(x),
     )
     max_reviews = st.text_input(
         "Max reviews to fetch",
@@ -234,10 +236,10 @@ with st.container(border=True):
     run_clicked = st.button("Run full pipeline", type="primary")
 
 if run_clicked:
-    _weeks_raw = weeks.strip() if weeks else ""
+    _weeks_val = weeks
     _max_val = max_reviews.strip() if max_reviews else ""
-    if not _weeks_raw or not _weeks_raw.isdigit() or not (1 <= int(_weeks_raw) <= 16):
-        st.error("Weeks of reviews must be a number between 1 and 16.")
+    if _weeks_val is None:
+        st.error("Please select the number of weeks.")
     elif not _max_val or not _max_val.isdigit() or not (100 <= int(_max_val) <= 5000):
         st.error("Max reviews must be a number between 100 and 5000.")
     else:
@@ -256,7 +258,7 @@ if run_clicked:
             status_placeholder.markdown(_status_html(done), unsafe_allow_html=True)
 
         try:
-            result = run_pipeline(weeks=int(_weeks_raw), max_reviews=int(_max_val), on_progress=_on_progress)
+            result = run_pipeline(weeks=_weeks_val, max_reviews=int(_max_val), on_progress=_on_progress)
             st.session_state["last_result"] = result
             st.session_state.pop("report_expanded", None)
             progress_bar.progress(100)
