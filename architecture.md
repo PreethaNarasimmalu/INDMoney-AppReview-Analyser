@@ -139,6 +139,7 @@ ACTION IDEAS
 - Wraps `weekly_pulse.md` into HTML email body (plain text fallback)
 - Subject: `INDMoney App Review Pulse — Week of [DATE]`
 - Recipient: entered inline in UI at send time — never hardcoded
+- Footer includes a per-recipient **unsubscribe link**: `https://indmoney-appreview-analyser.streamlit.app/Unsubscribe?email={recipient_email}` — clicking it opens the Unsubscribe page and removes that address automatically
 
 #### 4.2 Email Sender (`phase4/sender.py`)
 - Transport: Gmail SMTP via App Password
@@ -174,6 +175,12 @@ ACTION IDEAS
 ### Themes Page (`phase5/pages/2_Themes.py`)
 - Theme cards: label, description, green review-count badge, star rating (filled stars in `#2DB34A`)
 - Expandable to show all reviews under that theme
+
+### Unsubscribe Page (`phase5/pages/3_Unsubscribe.py`)
+- URL: `/Unsubscribe?email=user@example.com`
+- Reads `email` from query params, calls `remove_subscriber()`, shows confirmation
+- Handles edge cases: missing param, already unsubscribed, DB errors
+- Link to re-subscribe on main dashboard
 
 ### Bug fixes & resilience
 - Fixed `'NoneType' object has no attribute 'parent'`: `pipeline_runner.py` was passing `db_path=None` to `get_connection()`, overriding its default
@@ -326,6 +333,7 @@ Swapping any call to a different LLM = one-line config change.
 - `list_subscribers(conn)` — returns `[Subscriber]` ordered by sign-up date
 - `remove_subscriber(conn, email)` — returns bool
 - Used by both the Streamlit UI (add/remove via browser) and `scheduler/run.py` (load for automated sends)
+- Also used by the Unsubscribe page (`3_Unsubscribe.py`) to process one-click removal from email links
 
 ---
 
@@ -363,7 +371,8 @@ INDMoney-AppReview-Analyser/
 │   ├── subscriber_store.py       # SQLite subscriber CRUD
 │   └── pages/
 │       ├── 1_Reviews.py
-│       └── 2_Themes.py
+│       ├── 2_Themes.py
+│       └── 3_Unsubscribe.py
 ├── phase6/                       # React + FastAPI (later)
 │   ├── api/
 │   │   └── main.py

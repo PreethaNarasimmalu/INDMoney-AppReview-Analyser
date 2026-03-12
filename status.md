@@ -11,11 +11,17 @@
 | Phase 5 | Streamlit UI | ✅ Complete |
 | Scheduler | Weekly cron trigger (GitHub Actions) | ✅ Complete |
 | Subscribers | Email subscription UI + multi-recipient scheduler | ✅ Complete |
+| Unsubscribe | One-click unsubscribe link in email footer | ✅ Complete |
 | Phase 6 | React + FastAPI | ⏳ Pending |
 
 ---
 
 ## Decision Log
+
+### 2026-03-12 (Unsubscribe link)
+- Added `phase5/pages/3_Unsubscribe.py`: handles `/Unsubscribe?email=...` — reads query param, calls `remove_subscriber()`, shows confirmation; handles missing param, already-unsubscribed, DB errors
+- Updated `phase4/composer.py`: HTML email footer now includes a per-recipient unsubscribe link pointing to `https://indmoney-appreview-analyser.streamlit.app/Unsubscribe?email={recipient_email}`
+- Updated `architecture.md` and `status.md`
 
 ### 2026-03-12 (Subscribers + multi-recipient scheduler)
 - Added `phase5/subscriber_store.py`: `subscribers` table in `reviews.db`; `add_subscriber`, `list_subscribers`, `remove_subscriber` helpers

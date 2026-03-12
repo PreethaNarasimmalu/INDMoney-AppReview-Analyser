@@ -200,7 +200,11 @@ _HTML_WRAPPER = """\
       {working_section}
       {actions_section}
     </div>
-    <div class="footer">Auto-generated from Google Play reviews &bull; {week_label}</div>
+    <div class="footer">
+      Auto-generated from Google Play reviews &bull; {week_label}<br>
+      <a href="https://indmoney-appreview-analyser.streamlit.app/Unsubscribe?email={recipient_email}"
+         style="color:#aaa;text-decoration:underline;">Unsubscribe</a>
+    </div>
   </div>
 </body>
 </html>"""
@@ -339,10 +343,11 @@ def _build_actions_html(lines: list[str]) -> str:
     )
 
 
-def _markdown_to_html(markdown: str, week_label: str) -> str:
+def _markdown_to_html(markdown: str, week_label: str, recipient_email: str = "") -> str:
     sections = _parse_sections(markdown)
     return _HTML_WRAPPER.format(
         week_label=_escape_html(week_label),
+        recipient_email=_escape_html(recipient_email),
         themes_section=_build_themes_html(sections["TOP THEMES"]),
         voices_section=_build_voices_html(sections["USER VOICES"]),
         working_section=_build_working_html(sections["WHAT'S WORKING"]),
@@ -395,7 +400,7 @@ def compose(
     msg["To"] = to_header
 
     msg.set_content(markdown)
-    msg.add_alternative(_markdown_to_html(markdown, week_label), subtype="html")
+    msg.add_alternative(_markdown_to_html(markdown, week_label, recipient_email), subtype="html")
 
     return msg
 
