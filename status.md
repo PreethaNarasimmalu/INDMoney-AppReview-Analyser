@@ -5,7 +5,7 @@
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 1 | Data Ingestion (scraper + PII scrubber + SQLite) | ✅ Complete |
-| Phase 2 | Theme Grouping (Groq) | ⏳ Pending |
+| Phase 2 | Theme Grouping (Groq) | ✅ Complete |
 | Phase 3 | Note Generation (Gemini) | ⏳ Pending |
 | Phase 4 | Email Draft (Gmail SMTP) | ⏳ Pending |
 | Phase 5 | Streamlit UI | ⏳ Pending |
@@ -28,6 +28,19 @@
 - Confirmed Phase 1 has NO LLM — pure scraping + PII scrub + storage
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
+
+### 2026-03-12 (Phase 2 complete)
+- Created `llm_client/`: `groq_client.py` (chat + retry + JSON parse), `gemini_client.py` (placeholder), `router.py`
+- Created `phase2/theme_discovery.py`: Groq LLM Call 1 — discovers 3–5 themes from review texts
+- Created `phase2/classifier.py`: Groq LLM Call 2 — classifies every review into a theme, batched in groups of 30
+- Created `phase2/validator.py`: merges themes with < 2 reviews into largest theme; keeps 3–5 themes; sorts by count
+- Created `phase2/store.py`: `themes` table, `theme_id` column write-back to reviews, `themes.json` output
+- Rewrote `phase2/models.py`: new `Theme(theme_id, label, description, review_count)`, `ThemeList`, `ClassifiedReview`
+- Rewrote `phase2/config.py`: switched from Claude to Groq (`llama3-70b-8192`)
+- Removed old `phase2/analyzer.py` (replaced by three focused components above)
+- Added `groq>=0.9.0` to `requirements.txt`
+- Added 75 new tests across `test_models`, `test_theme_discovery`, `test_classifier`, `test_validator`, `test_store`
+- All 163 tests pass (phase1 + phase2)
 
 ### 2026-03-12 (Phase 1 complete)
 - Implemented `phase1/pii_scrubber.py`: regex hard gate for emails, Indian/intl phones, URLs, UPI IDs, hex tokens; replaces all with `[REDACTED]`

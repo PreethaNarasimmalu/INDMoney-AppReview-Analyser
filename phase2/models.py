@@ -1,93 +1,80 @@
 """
-Phase 2 data models for analysis results.
+Phase 2 data models — themes and classifications.
 """
+
 from dataclasses import dataclass, field
 
 
 @dataclass
-class Sentiment:
-    positive: int   # 0-100
-    neutral: int    # 0-100
-    negative: int   # 0-100
-
-    def __post_init__(self):
-        for name, val in [("positive", self.positive), ("neutral", self.neutral), ("negative", self.negative)]:
-            if not (0 <= val <= 100):
-                raise ValueError(f"Sentiment.{name} must be 0-100, got {val}")
-        total = self.positive + self.neutral + self.negative
-        if total != 100:
-            raise ValueError(f"Sentiment percentages must sum to 100, got {total}")
-
-    def to_dict(self) -> dict:
-        return {"positive": self.positive, "neutral": self.neutral, "negative": self.negative}
-
-
-VALID_SENTIMENTS = {"positive", "neutral", "negative"}
-
-
-@dataclass
 class Theme:
-    theme: str
-    count: int
-    sentiment: str              # "positive" | "neutral" | "negative"
-    examples: list[str] = field(default_factory=list)
+    theme_id: int
+    label: str
+    description: str
+    review_count: int = 0
 
     def __post_init__(self):
-        if not self.theme or not self.theme.strip():
-            raise ValueError("Theme.theme must be a non-empty string")
-        if self.count < 0:
-            raise ValueError(f"Theme.count must be >= 0, got {self.count}")
-        if self.sentiment not in VALID_SENTIMENTS:
-            raise ValueError(f"Theme.sentiment must be one of {VALID_SENTIMENTS}, got {self.sentiment!r}")
+        if not self.label or not self.label.strip():
+            raise ValueError("Theme.label must be a non-empty string")
+        if not self.description or not self.description.strip():
+            raise ValueError("Theme.description must be a non-empty string")
+        if self.theme_id < 1:
+            raise ValueError(f"Theme.theme_id must be >= 1, got {self.theme_id}")
+        if self.review_count < 0:
+            raise ValueError(f"Theme.review_count must be >= 0, got {self.review_count}")
 
     def to_dict(self) -> dict:
         return {
-            "theme": self.theme,
-            "count": self.count,
-            "sentiment": self.sentiment,
-            "examples": self.examples,
-        }
-
-
-@dataclass
-class AnalysisResult:
-    sentiment: Sentiment
-    themes: list[Theme]
-    summary: str
-    action_items: list[str]
-    review_count: int
-
-    def to_dict(self) -> dict:
-        return {
-            "sentiment": self.sentiment.to_dict(),
-            "themes": [t.to_dict() for t in self.themes],
-            "summary": self.summary,
-            "action_items": self.action_items,
+            "theme_id": self.theme_id,
+            "label": self.label,
+            "description": self.description,
             "review_count": self.review_count,
         }
 
+
+@dataclass
+class ThemeList:
+    themes: list[Theme] = field(default_factory=list)
+
+    @property
+    def count(self) -> int:
+        return len(self.themes)
+
+    def by_id(self, theme_id: int) -> Theme | None:
+        for t in self.themes:
+            if t.theme_id == theme_id:
+                return t
+        return None
+
+    def ids(self) -> list[int]:
+        return [t.theme_id for t in self.themes]
+
+    def to_list(self) -> list[dict]:
+        return [t.to_dict() for t in self.themes]
+
     @classmethod
-    def from_claude_json(cls, data: dict, review_count: int) -> "AnalysisResult":
-        """Build an AnalysisResult from the parsed JSON returned by Claude."""
-        raw_sent = data.get("sentiment", {})
-        sentiment = Sentiment(
-            positive=int(raw_sent.get("positive", 0)),
-            neutral=int(raw_sent.get("neutral", 0)),
-            negative=int(raw_sent.get("negative", 0)),
-        )
+    def from_groq_json(cls, data: dict) -> "ThemeList":
+        """
+        Parse the JSON returned by the theme discovery LLM call.
+
+        Expected shape:
+          { "themes": [{ "theme_id": 1, "label": "...", "description": "..." }, ...] }
+        """
+        raw_themes = data.get("themes", [])
         themes = [
             Theme(
-                theme=t.get("theme", ""),
-                count=int(t.get("count", 0)),
-                sentiment=t.get("sentiment", "neutral"),
-                examples=t.get("examples", []),
+                theme_id=int(t["theme_id"]),
+                label=str(t["label"]).strip(),
+                description=str(t.get("description", "")).strip(),
             )
-            for t in data.get("themes", [])
+            for t in raw_themes
         ]
-        return cls(
-            sentiment=sentiment,
-            themes=themes,
-            summary=data.get("summary", ""),
-            action_items=data.get("action_items", []),
-            review_count=review_count,
-        )
+        return cls(themes=themes)
+
+
+@dataclass
+class ClassifiedReview:
+    review_id: str   # review_hash from phase1
+    theme_id: int
+
+    def to_dict(self) -> dict:
+        return {"review_id": self.review_id, "theme_id": self.theme_id}
