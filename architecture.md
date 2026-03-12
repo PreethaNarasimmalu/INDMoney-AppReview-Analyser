@@ -56,15 +56,17 @@ App Store Reviews → Ingestion → Theme Grouping (Groq) → Weekly Note Genera
 - Integrated into `classify_reviews` and `discover_themes` — callers get filtered reviews automatically
 
 #### 2.1 Theme Discovery — LLM Call 1 (`phase2/theme_discovery.py`)
-- Input: all `clean_text` from the date window, batched to fit context limits
-- Prompt: read all reviews → return exactly 3–5 distinct theme labels with short descriptions
+- Input: up to `MAX_REVIEWS_FOR_DISCOVERY` (150) reviews, **sampled proportionally across star ratings 1–5** via `_sample_by_rating()` — ensures themes reflect the full rating spectrum, not just whichever rating has the most volume
+- Each review text truncated to `REVIEW_TEXT_TRUNCATE` (150) chars to stay under Groq's 12k TPM limit
+- Prompt: read sampled reviews → return exactly 3–5 distinct theme labels with short descriptions
 - Output: `[{ "theme_id": 1, "label": "...", "description": "..." }, ...]`
-- Model: Groq (e.g., `llama3-70b-8192`)
+- Model: Groq `llama-3.3-70b-versatile` with `response_format={"type":"json_object"}` (JSON mode) to guarantee valid JSON output
 
 #### 2.2 Review Classifier — LLM Call 2 (`phase2/classifier.py`)
 - Input: each review + theme list from 2.1
 - Prompt: assign this review to exactly one theme
-- Batched in groups of N reviews per API call (rate limit management)
+- Batched in groups of 20 reviews per Groq call (reduced from 30 to stay within TPM limits)
+- Uses JSON mode (`response_format={"type":"json_object"}`) to guarantee valid JSON
 - Output: `review_id → theme_id` mapping stored back into `reviews.db`
 
 #### 2.3 Theme Validator
@@ -153,8 +155,8 @@ ACTION IDEAS
 - `sys.path` fix at top of every page file so Streamlit can resolve package imports regardless of working directory
 
 ### Dashboard (`phase5/app.py`) — vertical section-card layout
-1. **Status card** — five pipeline stage badges (Reviews → Themes → Grouped → Report → Draft email); greyed out until pipeline completes, then all turn green with report date shown
-2. **Run pipeline card** — description text, weeks dropdown (1–16), max reviews input, **Run full pipeline** button; live `st.progress` bar during execution; `st.rerun()` on success to refresh status badges
+1. **Status card** — five pipeline stage badges (Reviews → Themes → Grouped → Report → Draft email); rendered via `st.empty()` placeholder so badges turn green **live during execution** as each stage completes (Reviews@20%, Themes@50%, Grouped@60%, Report@90%, Draft email@100%); all green + report date shown after full run
+2. **Run pipeline card** — description text, weeks dropdown (1–16), max reviews input, **Run full pipeline** button; live `st.progress` bar + `_on_progress` callback updates both progress bar and status badges; `st.rerun()` on success
 3. **View report card** *(post-run only)* — "Load latest report" toggle button; shows pulse markdown in a code block when expanded
 4. **Download report card** *(post-run only)* — Download `.md` button
 5. **Send email card** *(post-run only)* — recipient email + optional name fields, Send button; sends via `phase4.sender`
@@ -167,8 +169,11 @@ ACTION IDEAS
 - Theme cards: label, description, green review-count badge, star rating (filled stars in `#2DB34A`)
 - Expandable to show all reviews under that theme
 
-### Bug fixes
-- Fixed `'NoneType' object has no attribute 'parent'` on Run Now: `pipeline_runner.py` was passing `db_path=None` to `get_connection()`, overriding its default; now only passes `db_path` when not `None`
+### Bug fixes & resilience
+- Fixed `'NoneType' object has no attribute 'parent'`: `pipeline_runner.py` was passing `db_path=None` to `get_connection()`, overriding its default
+- Fixed Groq token limit (413): reduced `MAX_REVIEWS_FOR_DISCOVERY` 500→150, `REVIEW_TEXT_TRUNCATE` 200→150, `CLASSIFIER_BATCH_SIZE` 30→20
+- Fixed unterminated-string JSON parse errors: enabled JSON mode on all Groq calls via `response_format={"type":"json_object"}`
+- Fixed widgets rendering outside card boundary: replaced HTML `<div>` wrapping with `st.container(border=True)` + CSS override on `stVerticalBlockBorderWrapper`
 
 ---
 

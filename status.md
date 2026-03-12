@@ -29,6 +29,13 @@
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
 
+### 2026-03-12 (Phase 5 — live status badges + proportional sampling)
+- Status card now uses `st.empty()` placeholder; `_on_progress` callback updates it live — badges turn green one-by-one as each stage completes (Reviews@20%, Themes@50%, Grouped@60%, Report@90%, Draft email@100%)
+- Added `_sample_by_rating()` in `phase2/theme_discovery.py`: distributes the 150-review cap proportionally across star-rating buckets (1★–5★) so theme discovery sees balanced signal; prevents all reviews being 1-star complaints
+- Enabled Groq JSON mode (`response_format={"type":"json_object"}`) by default in `llm_client/groq_client.py` — forces valid JSON output, eliminates unterminated-string parse errors
+- Reduced Groq token usage: `MAX_REVIEWS_FOR_DISCOVERY` 500→150, `REVIEW_TEXT_TRUNCATE` 200→150, `CLASSIFIER_BATCH_SIZE` 30→20 (stays under 12k TPM free-tier limit)
+- Fixed widgets rendering outside card boundary: replaced HTML `<div>` wrapping with `st.container(border=True)` + CSS override
+
 ### 2026-03-12 (Phase 5 UI redesign + bug fixes)
 - Fixed `'NoneType' object has no attribute 'parent'` crash on Run Now: `pipeline_runner.py` was passing `db_path=None` explicitly to `get_connection()`, overriding its default; guarded with `if db_path is not None`
 - Redesigned `phase5/app.py` with INDMoney brand colors (`#2DB34A`, `#1A1A1A`, `#F7F8FA`) and vertical section-card layout matching reference UI structure:
