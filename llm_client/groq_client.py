@@ -27,14 +27,20 @@ def chat(
     prompt: str,
     model: str,
     max_tokens: int,
+    json_mode: bool = True,
 ) -> str:
     """
     Send a single user prompt to Groq and return the response text.
+
+    json_mode=True (default) sets response_format={"type":"json_object"} so
+    the model is forced to return valid JSON — prevents unterminated-string
+    and unescaped-quote parse errors.
 
     Retries up to MAX_RETRIES times on rate-limit (429) and server (5xx) errors
     with exponential backoff. Auth errors (401) are raised immediately.
     """
     last_exc: Exception | None = None
+    fmt = {"type": "json_object"} if json_mode else None
 
     for attempt in range(MAX_RETRIES + 1):
         try:
@@ -42,6 +48,7 @@ def chat(
                 model=model,
                 max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}],
+                **({"response_format": fmt} if fmt else {}),
             )
             return completion.choices[0].message.content
 
