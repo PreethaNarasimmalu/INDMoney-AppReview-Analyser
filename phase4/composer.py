@@ -82,6 +82,28 @@ _HTML_WRAPPER = """\
     .section {{
       margin-bottom: 32px;
     }}
+    /* What's Working */
+    .working-card {{
+      display: flex;
+      align-items: flex-start;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      background: #fdf4ff;
+      border-left: 4px solid #a855f7;
+      border-radius: 0 8px 8px 0;
+    }}
+    .working-num {{
+      font-size: 13px;
+      font-weight: 700;
+      color: #9333ea;
+      min-width: 24px;
+      margin-top: 1px;
+    }}
+    .working-text {{
+      font-size: 13px;
+      color: #1a1a2e;
+      line-height: 1.5;
+    }}
     /* Top Themes */
     .theme-card {{
       display: flex;
@@ -175,6 +197,7 @@ _HTML_WRAPPER = """\
     <div class="body">
       {themes_section}
       {voices_section}
+      {working_section}
       {actions_section}
     </div>
     <div class="footer">Auto-generated from Google Play reviews &bull; {week_label}</div>
@@ -188,8 +211,8 @@ _HTML_WRAPPER = """\
 # ---------------------------------------------------------------------------
 
 def _parse_sections(markdown: str) -> dict:
-    """Extract TOP THEMES, USER VOICES, ACTION IDEAS lines from markdown."""
-    sections = {"TOP THEMES": [], "USER VOICES": [], "ACTION IDEAS": []}
+    """Extract TOP THEMES, USER VOICES, WHAT'S WORKING, ACTION IDEAS lines from markdown."""
+    sections = {"TOP THEMES": [], "USER VOICES": [], "WHAT'S WORKING": [], "ACTION IDEAS": []}
     current = None
     for line in markdown.splitlines():
         stripped = line.strip()
@@ -263,6 +286,28 @@ def _build_voices_html(lines: list[str]) -> str:
     )
 
 
+def _build_working_html(lines: list[str]) -> str:
+    items = []
+    for line in lines:
+        m = re.match(r"^(\d+)\.\s+(.+)$", line)
+        if m:
+            num, text = m.group(1), _escape_html(m.group(2))
+            items.append(
+                f'<div class="working-card">'
+                f'<div class="working-num">{num}.</div>'
+                f'<div class="working-text">{text}</div>'
+                f'</div>'
+            )
+    if not items:
+        return ""
+    return (
+        '<div class="section">'
+        '<div class="section-title">What\'s Working</div>'
+        + "".join(items)
+        + "</div>"
+    )
+
+
 def _build_actions_html(lines: list[str]) -> str:
     items = []
     for line in lines:
@@ -291,6 +336,7 @@ def _markdown_to_html(markdown: str, week_label: str) -> str:
         week_label=_escape_html(week_label),
         themes_section=_build_themes_html(sections["TOP THEMES"]),
         voices_section=_build_voices_html(sections["USER VOICES"]),
+        working_section=_build_working_html(sections["WHAT'S WORKING"]),
         actions_section=_build_actions_html(sections["ACTION IDEAS"]),
     )
 
