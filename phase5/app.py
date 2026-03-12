@@ -24,59 +24,61 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# INDMoney brand CSS
+# CSS — INDMoney brand, section-card structure
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-  /* Hide sidebar toggle */
   [data-testid="collapsedControl"] { display: none !important; }
-  section[data-testid="stSidebar"] { display: none !important; }
+  section[data-testid="stSidebar"]  { display: none !important; }
 
-  /* Page background */
   .stApp { background: #F7F8FA; }
-
-  /* Main container */
   .main .block-container {
-    max-width: 1080px;
-    padding: 2rem 2rem 4rem;
+    max-width: 760px;
+    padding: 3.5rem 2rem 5rem;
   }
 
-  /* Topbar */
-  .ind-topbar {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding-bottom: 18px;
-    border-bottom: 2px solid #E4E7EC;
-    margin-bottom: 28px;
+  /* Page header */
+  .page-title {
+    font-size: 34px; font-weight: 800; color: #1A1A1A;
+    margin: 0 0 8px; line-height: 1.15;
   }
-  .ind-logo-circle {
-    width: 42px; height: 42px;
-    background: #1A1A1A;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    color: white; font-weight: 800; font-size: 12px; letter-spacing: -0.5px;
-    flex-shrink: 0;
-  }
-  .ind-app-name {
-    font-size: 22px; font-weight: 700; color: #1A1A1A; margin: 0;
-  }
-  .ind-app-sub {
-    font-size: 13px; color: #8A94A6; margin: 0;
+  .page-sub {
+    font-size: 15px; color: #8A94A6; margin: 0 0 36px;
   }
 
-  /* Config panel */
-  .config-panel {
+  /* Cards */
+  .card {
     background: white;
     border: 1px solid #E4E7EC;
     border-radius: 14px;
-    padding: 24px 28px 20px;
-    margin-bottom: 24px;
+    padding: 26px 30px 22px;
+    margin-bottom: 16px;
   }
-  .config-label {
-    font-size: 12px; font-weight: 600; color: #8A94A6;
-    text-transform: uppercase; letter-spacing: 0.6px;
-    margin-bottom: 18px;
+  .card-title {
+    font-size: 18px; font-weight: 700; color: #1A1A1A;
+    margin: 0 0 10px;
+  }
+  .card-desc {
+    font-size: 14px; color: #6B7280; line-height: 1.6;
+    margin: 0 0 20px;
+  }
+
+  /* Status badges */
+  .badge-row {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .badge {
+    font-size: 13px; font-weight: 600;
+    padding: 5px 14px; border-radius: 6px;
+    border: 1.5px solid #D1D5DB;
+    color: #9CA3AF; background: #F9FAFB;
+  }
+  .badge-on {
+    background: #F0FBF3; color: #2DB34A; border-color: #2DB34A;
+  }
+  .badge-date {
+    font-size: 13px; color: #8A94A6; margin-left: 6px;
   }
 
   /* Primary green button */
@@ -86,118 +88,130 @@ st.markdown("""
     border: none !important;
     border-radius: 8px !important;
     font-weight: 600 !important;
-    font-size: 15px !important;
-    padding: 10px 32px !important;
-    width: 100%;
-    transition: background 0.2s;
+    font-size: 14px !important;
+    padding: 9px 26px !important;
   }
   div[data-testid="stButton"] > button[kind="primary"]:hover {
     background: #249C3F !important;
   }
 
-  /* Secondary button (download) */
+  /* Outline / secondary button */
+  div[data-testid="stButton"] > button[kind="secondary"] {
+    background: white !important;
+    color: #2DB34A !important;
+    border: 1.5px solid #2DB34A !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+  }
+
+  /* Download button */
   div[data-testid="stDownloadButton"] > button {
     background: white !important;
     color: #2DB34A !important;
     border: 1.5px solid #2DB34A !important;
     border-radius: 8px !important;
     font-weight: 600 !important;
+    font-size: 14px !important;
   }
 
-  /* Metric cards */
-  div[data-testid="stMetric"] {
-    background: white;
-    border: 1px solid #E4E7EC;
-    border-radius: 12px;
-    padding: 16px 20px !important;
-  }
-  div[data-testid="stMetricValue"] {
-    font-size: 30px !important;
-    font-weight: 700 !important;
-    color: #1A1A1A !important;
-  }
-  div[data-testid="stMetricLabel"] {
-    font-size: 12px !important;
-    color: #8A94A6 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+  /* Form submit button */
+  div[data-testid="stFormSubmitButton"] > button {
+    background: #2DB34A !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    padding: 9px 26px !important;
   }
 
-  /* Section card */
-  .section-card {
-    background: white;
-    border: 1px solid #E4E7EC;
-    border-radius: 14px;
-    padding: 24px 28px;
-    margin-bottom: 20px;
-  }
-  .section-title {
-    font-size: 16px; font-weight: 700; color: #1A1A1A;
-    margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .green-dot {
-    width: 8px; height: 8px;
-    background: #2DB34A; border-radius: 50%;
-    display: inline-block;
+  /* Input labels */
+  label[data-testid="stWidgetLabel"] p {
+    font-size: 13px !important;
+    color: #4B5563 !important;
+    font-weight: 500 !important;
   }
 
-  /* Phase progress step */
+  /* Progress step */
   .progress-step {
-    font-size: 13px; color: #2DB34A; font-weight: 500;
-    padding: 4px 0;
-  }
-
-  /* Empty state */
-  .empty-state {
-    text-align: center; padding: 60px 20px;
-    color: #8A94A6;
-  }
-  .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-state-text { font-size: 15px; }
-
-  /* Email section */
-  .email-note {
-    font-size: 12px; color: #8A94A6; margin-top: 4px;
+    font-size: 13px; color: #2DB34A; font-weight: 500; padding: 3px 0;
   }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Topbar
+# Page header
 # ---------------------------------------------------------------------------
 st.markdown("""
-<div class="ind-topbar">
-  <div class="ind-logo-circle">IND</div>
-  <div>
-    <div class="ind-app-name">App Review Pulse</div>
-    <div class="ind-app-sub">Weekly intelligence from Google Play · Groq + Gemini</div>
+<div class="page-title">INDMoney App Review Pulse</div>
+<div class="page-sub">Generate the one-page weekly pulse from Play Store reviews and send it by email.</div>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+result = st.session_state.get("last_result")
+has_result = result is not None
+
+
+def _badge(label: str, active: bool) -> str:
+    cls = "badge badge-on" if active else "badge"
+    return f'<span class="{cls}">{label}</span>'
+
+
+# ---------------------------------------------------------------------------
+# 1. Status card
+# ---------------------------------------------------------------------------
+date_html = (
+    f'<span class="badge-date">Report date: {result.week_label}</span>'
+    if has_result else ""
+)
+st.markdown(f"""
+<div class="card">
+  <div class="card-title">Status</div>
+  <div class="badge-row">
+    {_badge("Reviews",     has_result)}
+    {_badge("Themes",      has_result)}
+    {_badge("Grouped",     has_result)}
+    {_badge("Report",      has_result)}
+    {_badge("Draft email", has_result)}
+    {date_html}
   </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Configuration panel (inline, not sidebar)
+# 2. Run pipeline card
 # ---------------------------------------------------------------------------
-st.markdown('<div class="config-panel"><div class="config-label">Configuration</div>', unsafe_allow_html=True)
-col1, col2, col3 = st.columns([3, 3, 2])
-with col1:
-    weeks = st.slider("Review window (weeks)", min_value=1, max_value=16, value=8)
-with col2:
-    max_reviews = st.number_input("Max reviews to scrape", min_value=100, max_value=2000, value=1000, step=100)
-with col3:
-    st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-    run_clicked = st.button("▶  Run Now", type="primary", use_container_width=True)
+st.markdown("""
+<div class="card">
+  <div class="card-title">Run pipeline</div>
+  <div class="card-desc">
+    Scrape reviews &rarr; discover themes &rarr; classify &rarr; generate report
+    &rarr; create draft email. This may take several minutes.
+  </div>
+""", unsafe_allow_html=True)
+
+weeks = st.selectbox(
+    "Weeks of reviews",
+    options=list(range(1, 17)),
+    index=7,
+    format_func=lambda x: str(x),
+)
+max_reviews = st.number_input(
+    "Max reviews to fetch",
+    min_value=100, max_value=5000, value=1000, step=100,
+)
+run_clicked = st.button("Run full pipeline", type="primary")
+
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ---------------------------------------------------------------------------
-# Pipeline execution
-# ---------------------------------------------------------------------------
 if run_clicked:
     from phase5.pipeline_runner import run_pipeline
 
     progress_bar = st.progress(0)
-    status_slot = st.empty()
+    status_slot  = st.empty()
 
     def _on_progress(msg: str, pct: int) -> None:
         progress_bar.progress(pct)
@@ -207,57 +221,68 @@ if run_clicked:
         )
 
     try:
-        result = run_pipeline(weeks=weeks, max_reviews=max_reviews, on_progress=_on_progress)
+        result = run_pipeline(weeks=weeks, max_reviews=int(max_reviews), on_progress=_on_progress)
         st.session_state["last_result"] = result
+        st.session_state.pop("report_expanded", None)
         progress_bar.progress(100)
         status_slot.success("Pipeline complete!")
+        st.rerun()
     except Exception as exc:
         progress_bar.empty()
         status_slot.empty()
         st.error(f"Pipeline failed: {exc}")
 
 # ---------------------------------------------------------------------------
-# Results
+# 3–5  Only shown once a result exists
 # ---------------------------------------------------------------------------
-if "last_result" in st.session_state:
-    result = st.session_state["last_result"]
+if has_result:
 
-    # Metrics
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Reviews Analysed", f"{result.review_count:,}")
-    m2.metric("New This Run", f"{result.new_reviews:,}")
-    m3.metric("Themes Found", result.theme_count)
-    m4.metric("Old Reviews Purged", result.purged_reviews)
-
-    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-
-    # Pulse note card
-    st.markdown(f"""
-    <div class="section-card">
-      <div class="section-title">
-        <span class="green-dot"></span> Weekly Pulse — {result.week_label}
-      </div>
-    </div>
+    # 3. View report card
+    st.markdown("""
+    <div class="card">
+      <div class="card-title">View report</div>
     """, unsafe_allow_html=True)
-    st.code(result.pulse_markdown, language=None)
+
+    if st.button("Load latest report", type="secondary"):
+        st.session_state["report_expanded"] = not st.session_state.get("report_expanded", False)
+
+    if st.session_state.get("report_expanded"):
+        st.code(result.pulse_markdown, language=None)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # 4. Download card
+    st.markdown("""
+    <div class="card">
+      <div class="card-title">Download report</div>
+      <div class="card-desc" style="margin-bottom:14px">
+        Save the weekly pulse as a Markdown file.
+      </div>
+    """, unsafe_allow_html=True)
 
     st.download_button(
-        label="⬇  Download Report (.md)",
+        label="Download .md",
         data=result.pulse_markdown,
         file_name=f"weekly_pulse_{result.week_label.replace(' ', '_')}.md",
         mime="text/plain",
     )
 
-    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    # Send email card
-    st.markdown('<div class="section-card"><div class="section-title"><span class="green-dot"></span> Send Email</div>', unsafe_allow_html=True)
+    # 5. Send email card
+    st.markdown("""
+    <div class="card">
+      <div class="card-title">Send email</div>
+      <div class="card-desc">
+        Send the latest report to an email address.
+        Optional name adds &ldquo;Hi name,&rdquo; at the start.
+      </div>
+    """, unsafe_allow_html=True)
+
     with st.form("email_form"):
-        ec1, ec2 = st.columns(2)
-        recipient_name = ec1.text_input("Recipient Name", placeholder="Product Team")
-        recipient_email = ec2.text_input("Recipient Email", placeholder="team@indmoney.com")
-        st.markdown('<div class="email-note">Email is sent directly from your GMAIL_ADDRESS configured in .env</div>', unsafe_allow_html=True)
-        send_clicked = st.form_submit_button("Send Email")
+        recipient_email = st.text_input("Recipient email", placeholder="e.g. you@indmoney.com")
+        recipient_name  = st.text_input("Recipient name (optional)", placeholder="e.g. Priya")
+        send_clicked = st.form_submit_button("Send email")
 
         if send_clicked:
             if not recipient_email.strip():
@@ -278,12 +303,5 @@ if "last_result" in st.session_state:
                     st.success(f"Email sent to **{recipient_email}**!")
                 except Exception as exc:
                     st.error(f"Failed to send email: {exc}")
-    st.markdown("</div>", unsafe_allow_html=True)
 
-else:
-    st.markdown("""
-    <div class="empty-state">
-      <div class="empty-state-icon">📊</div>
-      <div class="empty-state-text">Configure the settings above and click <strong>Run Now</strong> to generate the weekly pulse.</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
