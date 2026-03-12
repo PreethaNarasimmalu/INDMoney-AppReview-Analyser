@@ -165,6 +165,7 @@ ACTION IDEAS
 3. **View report card** *(post-run only)* — "Load latest report" toggle button; shows pulse markdown in a code block when expanded
 4. **Download report card** *(post-run only)* — Download `.md` button
 5. **Send email card** *(post-run only)* — recipient email + optional name fields, Send button; sends via `phase4.sender`
+6. **Subscribe card** *(always visible)* — email + optional name form; Subscribe button adds to `subscribers` table in `reviews.db`; shows current subscriber list with per-row Remove buttons; `st.rerun()` on add/remove
 
 ### Reviews Page (`phase5/pages/1_Reviews.py`)
 - All filters inline (no sidebar): date window, rating multiselect, theme, keyword search — 4-column row
@@ -188,7 +189,7 @@ ACTION IDEAS
 **Goal:** Run the full pipeline automatically every Monday and send the pulse email directly to a fixed recipient — no human needed.
 
 ### Trigger
-- **Automatic:** GitHub Actions cron `0 9 * * 1` (Monday 09:00 UTC)
+- **Automatic:** GitHub Actions cron `30 3 * * 1` (Monday 09:00 IST / 03:30 UTC)
 - **Manual:** `workflow_dispatch` button in the GitHub Actions UI for ad-hoc runs
 
 ### Components
@@ -198,25 +199,27 @@ ACTION IDEAS
 |----------|---------|-------------|
 | `SCHEDULER_WEEKS` | 3 | Lookback window — tight enough for weekly cadence |
 | `SCHEDULER_MAX_REVIEWS` | 200 | Review cap — keeps LLM token costs low for unattended runs |
-| `SCHEDULER_RECIPIENT_EMAIL` | *(required)* | Fixed recipient; fails fast with exit code 1 if unset |
-| `SCHEDULER_RECIPIENT_NAME` | "" | Display name in the To: header |
+| `SCHEDULER_RECIPIENTS` | "" | Multi-recipient list — comma-separated `email` or `Name:email` entries (GitHub Actions) |
+| `SCHEDULER_RECIPIENT_EMAIL` | "" | Legacy single-recipient fallback |
+| `SCHEDULER_RECIPIENT_NAME` | "" | Display name for legacy single-recipient |
 
 #### scheduler/run.py
-1. Validates `SCHEDULER_RECIPIENT_EMAIL` is set — exits with code 1 if missing
-2. Calls `run_pipeline(weeks, max_reviews, on_progress)` — Phases 1–3
-3. Calls `phase4.composer.compose()` with the pulse markdown
-4. Calls `phase4.sender.send_email()` — **direct SMTP send**, not a draft
+1. Resolves recipients in priority order: DB subscribers → `SCHEDULER_RECIPIENTS` env var → legacy `SCHEDULER_RECIPIENT_EMAIL`
+2. Exits with code 1 if no recipients found from any source
+3. Calls `run_pipeline(weeks, max_reviews, on_progress)` — Phases 1–3
+4. Calls `phase4.composer.compose()` + `phase4.sender.send_email()` for **each recipient** in a loop
+5. Reports sent/failed counts; exits with code 1 only if all sends failed
 
 #### .github/workflows/weekly_pulse.yml
 - Checks out repo, installs `requirements.txt`, runs `python -m scheduler.run`
-- All secrets injected from GitHub repo settings: `GROQ_API_KEY`, `GEMINI_API_KEY`, `GMAIL_ADDRESS`, `GMAIL_APP_PASSWORD`, `SCHEDULER_RECIPIENT_EMAIL`, `SCHEDULER_RECIPIENT_NAME`
+- All secrets injected from GitHub repo settings: `GROQ_API_KEY`, `GEMINI_API_KEY`, `GMAIL_ADDRESS`, `GMAIL_APP_PASSWORD`, `SCHEDULER_RECIPIENTS`, `SCHEDULER_RECIPIENT_EMAIL`, `SCHEDULER_RECIPIENT_NAME`
 
 ### Key difference from the UI email
-The Streamlit UI's "Send Email" card is a **one-off manual send** to whoever the user types in at that moment.
-The scheduler is an **automated send** to a fixed recipient configured in GitHub secrets — runs entirely without human interaction.
+The Streamlit UI's "Send Email" card is a **one-off manual send** to whoever the user types in.
+The scheduler is an **automated send** to all subscribers — runs entirely without human interaction.
 
-**IN:** GitHub secrets (API keys, Gmail credentials, recipient)
-**OUT:** Weekly pulse email delivered to `SCHEDULER_RECIPIENT_EMAIL` every Monday
+**IN:** GitHub secrets (API keys, Gmail credentials, recipients)
+**OUT:** Weekly pulse email delivered to every subscriber every Monday at 9 AM IST
 
 ---
 
@@ -317,6 +320,15 @@ Swapping any call to a different LLM = one-line config change.
 
 ---
 
+### Subscriber Store (`phase5/subscriber_store.py`)
+- `subscribers` table in `data/reviews.db` (same DB as reviews) — columns: `email` (PK), `name`, `subscribed_at`
+- `add_subscriber(conn, email, name)` — `INSERT OR IGNORE`, returns bool
+- `list_subscribers(conn)` — returns `[Subscriber]` ordered by sign-up date
+- `remove_subscriber(conn, email)` — returns bool
+- Used by both the Streamlit UI (add/remove via browser) and `scheduler/run.py` (load for automated sends)
+
+---
+
 ## File Structure
 
 ```
@@ -348,6 +360,7 @@ INDMoney-AppReview-Analyser/
 │   └── tests/
 ├── phase5/                       # Streamlit UI
 │   ├── app.py                    # Dashboard (main page)
+│   ├── subscriber_store.py       # SQLite subscriber CRUD
 │   └── pages/
 │       ├── 1_Reviews.py
 │       └── 2_Themes.py

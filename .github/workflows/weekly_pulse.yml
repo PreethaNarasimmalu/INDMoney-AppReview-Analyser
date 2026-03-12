@@ -2,7 +2,7 @@ name: Weekly App Review Pulse
 
 on:
   schedule:
-    - cron: '0 9 * * 1'   # Every Monday at 09:00 UTC
+    - cron: '30 3 * * 1'   # Every Monday at 09:00 IST (03:30 UTC)
   workflow_dispatch:        # Allow manual trigger from the GitHub Actions UI
 
 jobs:
@@ -28,6 +28,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          SCHEDULER_RECIPIENTS: ${{ secrets.SCHEDULER_RECIPIENTS }}
           SCHEDULER_RECIPIENT_EMAIL: ${{ secrets.SCHEDULER_RECIPIENT_EMAIL }}
           SCHEDULER_RECIPIENT_NAME: ${{ secrets.SCHEDULER_RECIPIENT_NAME }}
           SCHEDULER_WEEKS: '3'

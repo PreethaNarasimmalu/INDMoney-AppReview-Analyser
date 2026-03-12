@@ -1,25 +1,27 @@
 """
 Scheduler entry point — runs the full pipeline and sends the weekly pulse email.
 
-Invoked by GitHub Actions every Monday at 09:00 UTC, or manually:
+Invoked by GitHub Actions every Monday at 09:00 IST (03:30 UTC), or manually:
     python -m scheduler.run
+
+Recipients are resolved in priority order:
+  1. Subscribers in data/reviews.db (when running locally with the Streamlit UI)
+  2. SCHEDULER_RECIPIENTS env var — comma-separated "email" or "Name:email" entries
+  3. Legacy SCHEDULER_RECIPIENT_EMAIL / SCHEDULER_RECIPIENT_NAME (single recipient)
 
 Required environment variables (set as GitHub secrets or in .env):
     GROQ_API_KEY
     GEMINI_API_KEY
     GMAIL_ADDRESS
     GMAIL_APP_PASSWORD
-    SCHEDULER_RECIPIENT_EMAIL
 
-Optional environment variables:
-    SCHEDULER_WEEKS           (default: 3)
-    SCHEDULER_MAX_REVIEWS     (default: 200)
-    SCHEDULER_RECIPIENT_NAME  (default: "")
+At least one recipient source must be configured (exits with code 1 if none found).
 """
 
 import logging
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -30,6 +32,7 @@ from scheduler.config import (
     SCHEDULER_MAX_REVIEWS,
     SCHEDULER_RECIPIENT_EMAIL,
     SCHEDULER_RECIPIENT_NAME,
+    SCHEDULER_RECIPIENTS,
 )
 from phase5.pipeline_runner import run_pipeline
 from phase4.composer import compose
@@ -43,14 +46,67 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+def _load_recipients() -> list[tuple[str, str]]:
+    """
+    Return a list of (email, name) tuples from all available sources.
+
+    Priority:
+      1. DB subscribers (local runs)
+      2. SCHEDULER_RECIPIENTS env var (GitHub Actions)
+      3. Legacy SCHEDULER_RECIPIENT_EMAIL (backwards compat)
+    """
+    recipients: list[tuple[str, str]] = []
+
+    # 1. DB subscribers
+    try:
+        db_path = Path(__file__).resolve().parent.parent / "data" / "reviews.db"
+        if db_path.exists():
+            from phase5.subscriber_store import get_connection, list_subscribers, ensure_table
+            conn = get_connection(db_path)
+            ensure_table(conn)
+            subs = list_subscribers(conn)
+            conn.close()
+            if subs:
+                recipients = [(s.email, s.name) for s in subs]
+                log.info("Loaded %d subscriber(s) from DB", len(recipients))
+    except Exception as exc:
+        log.warning("Could not load DB subscribers: %s", exc)
+
+    # 2. SCHEDULER_RECIPIENTS env var — "email" or "Name:email", comma-separated
+    if not recipients and SCHEDULER_RECIPIENTS:
+        for entry in SCHEDULER_RECIPIENTS.split(","):
+            entry = entry.strip()
+            if not entry:
+                continue
+            if ":" in entry:
+                name, email = entry.split(":", 1)
+                recipients.append((email.strip(), name.strip()))
+            else:
+                recipients.append((entry, ""))
+        if recipients:
+            log.info("Loaded %d recipient(s) from SCHEDULER_RECIPIENTS env var", len(recipients))
+
+    # 3. Legacy single-recipient fallback
+    if not recipients and SCHEDULER_RECIPIENT_EMAIL:
+        recipients = [(SCHEDULER_RECIPIENT_EMAIL, SCHEDULER_RECIPIENT_NAME)]
+        log.info("Using legacy SCHEDULER_RECIPIENT_EMAIL: %s", SCHEDULER_RECIPIENT_EMAIL)
+
+    return recipients
+
+
 def main() -> None:
-    if not SCHEDULER_RECIPIENT_EMAIL:
-        log.error("SCHEDULER_RECIPIENT_EMAIL is not set — cannot send email")
+    recipients = _load_recipients()
+
+    if not recipients:
+        log.error(
+            "No recipients configured — set SCHEDULER_RECIPIENTS, SCHEDULER_RECIPIENT_EMAIL, "
+            "or add subscribers via the Streamlit UI"
+        )
         sys.exit(1)
 
     log.info("Starting scheduled pipeline run")
     log.info("  weeks=%d  max_reviews=%d", SCHEDULER_WEEKS, SCHEDULER_MAX_REVIEWS)
-    log.info("  recipient=%s", SCHEDULER_RECIPIENT_EMAIL)
+    log.info("  recipients=%d", len(recipients))
 
     def _on_progress(msg: str, pct: int) -> None:
         log.info("  [%3d%%] %s", pct, msg)
@@ -69,16 +125,27 @@ def main() -> None:
     )
 
     sender_address = os.getenv("GMAIL_ADDRESS", "")
-    msg = compose(
-        markdown=result.pulse_markdown,
-        week_label=result.week_label,
-        recipient_name=SCHEDULER_RECIPIENT_NAME,
-        recipient_email=SCHEDULER_RECIPIENT_EMAIL,
-        sender_address=sender_address,
-    )
+    sent, failed = 0, 0
 
-    send_email(msg)
-    log.info("Email sent to %s", SCHEDULER_RECIPIENT_EMAIL)
+    for email, name in recipients:
+        try:
+            msg = compose(
+                markdown=result.pulse_markdown,
+                week_label=result.week_label,
+                recipient_name=name,
+                recipient_email=email,
+                sender_address=sender_address,
+            )
+            send_email(msg)
+            log.info("Email sent to %s", email)
+            sent += 1
+        except Exception as exc:
+            log.error("Failed to send email to %s: %s", email, exc)
+            failed += 1
+
+    log.info("Done — %d sent, %d failed", sent, failed)
+    if failed and sent == 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

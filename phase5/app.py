@@ -322,3 +322,73 @@ if has_result:
                         st.success(f"Email sent to **{recipient_email}**!")
                     except Exception as exc:
                         st.error(f"Failed to send email: {exc}")
+
+# ---------------------------------------------------------------------------
+# 6. Subscribe card (always visible)
+# ---------------------------------------------------------------------------
+with st.container(border=True):
+    st.markdown('<p class="card-title">Subscribe to weekly pulse</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="card-desc">Subscribers receive the automated weekly pulse every Monday at 9 AM IST.</p>',
+        unsafe_allow_html=True,
+    )
+
+    with st.form("subscribe_form"):
+        sub_email = st.text_input("Email address", placeholder="e.g. you@indmoney.com")
+        sub_name  = st.text_input("Name (optional)", placeholder="e.g. Priya")
+        subscribe_clicked = st.form_submit_button("Subscribe", type="primary")
+
+    if subscribe_clicked:
+        if not sub_email.strip():
+            st.error("Email address is required.")
+        else:
+            try:
+                from phase5.subscriber_store import get_connection as _sub_conn, add_subscriber
+                _conn = _sub_conn()
+                added = add_subscriber(_conn, sub_email.strip(), sub_name.strip())
+                _conn.close()
+                if added:
+                    st.success(f"**{sub_email}** subscribed to the weekly pulse!")
+                    st.rerun()
+                else:
+                    st.warning(f"**{sub_email}** is already subscribed.")
+            except Exception as exc:
+                st.error(f"Failed to subscribe: {exc}")
+
+    # Subscriber list
+    try:
+        from phase5.subscriber_store import (
+            get_connection as _sub_conn,
+            list_subscribers,
+            remove_subscriber,
+        )
+        _conn = _sub_conn()
+        _subs = list_subscribers(_conn)
+        _conn.close()
+
+        if _subs:
+            count = len(_subs)
+            st.markdown(
+                f'<p style="font-size:13px;font-weight:600;color:#4B5563;margin:4px 0 10px;">'
+                f'{count} subscriber{"s" if count != 1 else ""}</p>',
+                unsafe_allow_html=True,
+            )
+            for _sub in _subs:
+                _display = f"{_sub.name} &lt;{_sub.email}&gt;" if _sub.name else _sub.email
+                _col1, _col2 = st.columns([7, 1])
+                _col1.markdown(
+                    f'<span style="font-size:13px;color:#374151;">{_display}</span>',
+                    unsafe_allow_html=True,
+                )
+                if _col2.button("Remove", key=f"unsub_{_sub.email}", type="secondary"):
+                    _c2 = _sub_conn()
+                    remove_subscriber(_c2, _sub.email)
+                    _c2.close()
+                    st.rerun()
+        else:
+            st.markdown(
+                '<p style="font-size:13px;color:#9CA3AF;margin:4px 0;">No subscribers yet.</p>',
+                unsafe_allow_html=True,
+            )
+    except Exception:
+        pass

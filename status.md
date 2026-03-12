@@ -10,11 +10,21 @@
 | Phase 4 | Email Draft (Gmail IMAP) | ✅ Complete |
 | Phase 5 | Streamlit UI | ✅ Complete |
 | Scheduler | Weekly cron trigger (GitHub Actions) | ✅ Complete |
+| Subscribers | Email subscription UI + multi-recipient scheduler | ✅ Complete |
 | Phase 6 | React + FastAPI | ⏳ Pending |
 
 ---
 
 ## Decision Log
+
+### 2026-03-12 (Subscribers + multi-recipient scheduler)
+- Added `phase5/subscriber_store.py`: `subscribers` table in `reviews.db`; `add_subscriber`, `list_subscribers`, `remove_subscriber` helpers
+- Added **Subscribe card** to `phase5/app.py` (card 6, always visible): email + name form, subscriber list with per-row Remove buttons
+- Updated `scheduler/run.py`: resolves recipients — DB subscribers → `SCHEDULER_RECIPIENTS` env var → legacy `SCHEDULER_RECIPIENT_EMAIL`; sends to each in a loop
+- Updated `scheduler/config.py`: added `SCHEDULER_RECIPIENTS` env var
+- Fixed GitHub Actions cron: `0 9 * * 1` (09:00 UTC) → `30 3 * * 1` (03:30 UTC = 09:00 IST)
+- Updated `.github/workflows/weekly_pulse.yml`: new cron + `SCHEDULER_RECIPIENTS` secret
+- Updated `architecture.md`: scheduler section, subscriber store docs, file structure
 
 ### 2026-03-12 (Scheduler — GitHub Actions weekly trigger)
 - Created `scheduler/` folder as a standalone module (not Phase 6, which is reserved for React+FastAPI)
