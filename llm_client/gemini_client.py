@@ -1,6 +1,7 @@
 """
 Shared Gemini API wrapper — used by Phase 3 (note generation).
 
+Uses the current google-genai SDK (google.genai).
 Handles retries with exponential backoff on transient errors.
 Auth errors (403) and bad-request errors (400) are raised immediately.
 """
@@ -14,16 +15,15 @@ RETRY_BASE_SECONDS = 2
 
 
 def get_gemini_client():
-    """Build and return a configured genai module. Raises if GEMINI_API_KEY is not set."""
+    """Build and return a Gemini Client. Raises if GEMINI_API_KEY is not set."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set")
-    import google.generativeai as genai
-    genai.configure(api_key=api_key)
-    return genai
+    from google import genai
+    return genai.Client(api_key=api_key)
 
 
-def chat(genai, prompt: str, model: str, max_tokens: int) -> str:
+def chat(client, prompt: str, model: str, max_tokens: int) -> str:
     """
     Send a single user prompt to Gemini and return the response text.
 
@@ -38,15 +38,17 @@ def chat(genai, prompt: str, model: str, max_tokens: int) -> str:
         _NON_RETRYABLE = ()
         _RETRYABLE = ()
 
+    from google.genai import types
+
     last_exc: Exception | None = None
-    gemini_model = genai.GenerativeModel(
-        model,
-        generation_config={"max_output_tokens": max_tokens},
-    )
 
     for attempt in range(MAX_RETRIES + 1):
         try:
-            response = gemini_model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(max_output_tokens=max_tokens),
+            )
             return response.text
 
         except _NON_RETRYABLE:
@@ -56,7 +58,6 @@ def chat(genai, prompt: str, model: str, max_tokens: int) -> str:
             last_exc = exc
 
         except Exception as exc:
-            # Catch-all for connection errors or unexpected failures
             last_exc = exc
 
         if attempt < MAX_RETRIES:
