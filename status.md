@@ -8,7 +8,7 @@
 | Phase 2 | Theme Grouping (Groq) | ✅ Complete |
 | Phase 3 | Note Generation (Gemini) | ✅ Complete |
 | Phase 4 | Email Draft (Gmail IMAP) | ✅ Complete |
-| Phase 5 | Streamlit UI | ⏳ Pending |
+| Phase 5 | Streamlit UI | ✅ Complete |
 | Scheduler | Weekly cron trigger | ⏳ Pending |
 | Phase 6 | React + FastAPI | ⏳ Pending |
 
@@ -28,6 +28,15 @@
 - Confirmed Phase 1 has NO LLM — pure scraping + PII scrub + storage
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
+
+### 2026-03-12 (Phase 5 complete)
+- Created `phase5/pipeline_runner.py`: orchestrates all 4 phases; accepts `on_progress` callback for live UI updates; returns `PipelineResult` dataclass
+- Created `phase5/app.py`: Streamlit dashboard — Run Now button, live progress bar, metrics (reviews, new, themes, purged), pulse note display, download .md, Send Email form
+- Created `phase5/pages/1_Reviews.py`: filterable reviews table (date window, rating, theme, keyword search)
+- Created `phase5/pages/2_Themes.py`: theme cards with review count, avg rating, expandable review lists
+- Added `phase5/tests` to `pytest.ini` testpaths
+- Added 31 tests in `test_pipeline_runner.py` — all pass (Phase 1–3 calls, result fields, error cases, progress callback)
+- All 341 tests pass (phase1 + phase2 + phase3 + phase4 + phase5)
 
 ### 2026-03-12 (DB retention policy added)
 - Added `purge_old_reviews(conn, retention_weeks)` to `phase1/review_store.py`
