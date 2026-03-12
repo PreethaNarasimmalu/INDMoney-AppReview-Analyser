@@ -2,7 +2,7 @@
 Phase 3 configuration — Gemini LLM settings.
 """
 
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 MAX_TOKENS = 2048
 
 # How many top themes to summarise
