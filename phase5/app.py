@@ -361,37 +361,3 @@ with st.container(border=True):
             except Exception as exc:
                 st.error(f"Failed to subscribe: {exc}")
 
-    # Subscriber list
-    try:
-        from phase5.subscriber_store import (
-            get_connection as _sub_conn,
-            list_subscribers,
-            remove_subscriber,
-        )
-        _conn = _sub_conn()
-        _subs = list_subscribers(_conn)
-        _conn.close()
-
-        if _subs:
-            count = len(_subs)
-            st.markdown(
-                f'<p style="font-size:13px;font-weight:600;color:#4B5563;margin:4px 0 10px;">'
-                f'{count} subscriber{"s" if count != 1 else ""}</p>',
-                unsafe_allow_html=True,
-            )
-            for _sub in _subs:
-                _display = f"{_sub.name} &lt;{_sub.email}&gt;" if _sub.name else _sub.email
-                _col1, _col2 = st.columns([7, 1])
-                _col1.markdown(
-                    f'<span style="font-size:13px;color:#374151;">{_display}</span>',
-                    unsafe_allow_html=True,
-                )
-                if _col2.button("Remove", key=f"unsub_{_sub.email}", type="secondary"):
-                    _c2 = _sub_conn()
-                    remove_subscriber(_c2, _sub.email)
-                    _c2.close()
-                    st.rerun()
-        else:
-            pass
-    except Exception:
-        pass
