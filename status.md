@@ -18,6 +18,12 @@
 
 ## Decision Log
 
+### 2026-03-12 (Streamlit Cloud → GitHub subscriber sync)
+- Added `_push_to_github()` to `phase5/subscriber_store.py`: after every `_sync_json()`, pushes `subscribers.json` to GitHub via the Contents API if `GITHUB_TOKEN` + `GITHUB_REPO` env vars are set
+- Subscribers added/removed on the deployed Streamlit Cloud app now automatically commit `subscribers.json` to the repo — GitHub Actions scheduler reads the latest list without any manual steps
+- Requires `GITHUB_TOKEN` (PAT with `contents:write`) and `GITHUB_REPO` secrets added to Streamlit Cloud app settings
+- Push failure is silent — subscribe/unsubscribe always succeeds locally
+
 ### 2026-03-12 (Unsubscribe link)
 - Added `phase5/pages/3_Unsubscribe.py`: handles `/Unsubscribe?email=...` — reads query param, calls `remove_subscriber()`, shows confirmation; handles missing param, already-unsubscribed, DB errors
 - Updated `phase4/composer.py`: HTML email footer now includes a per-recipient unsubscribe link pointing to `https://indmoney-appreview-analyser.streamlit.app/Unsubscribe?email={recipient_email}`
