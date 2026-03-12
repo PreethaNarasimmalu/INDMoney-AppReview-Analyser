@@ -89,7 +89,7 @@ def run_pipeline(
     scrubbed = scrub_reviews(fetch_result.reviews)
 
     _progress("Phase 1: Storing reviews in DB…", 15)
-    conn = get_connection(db_path)
+    conn = get_connection(db_path) if db_path is not None else get_connection()
     create_table(conn)
     migrate(conn)
     new_count = upsert_reviews(scrubbed, conn)
