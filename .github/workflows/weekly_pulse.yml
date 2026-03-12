@@ -1,0 +1,35 @@
+name: Weekly App Review Pulse
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # Every Monday at 09:00 UTC
+  workflow_dispatch:        # Allow manual trigger from the GitHub Actions UI
+
+jobs:
+  run-pulse:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run weekly pulse
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          SCHEDULER_RECIPIENT_EMAIL: ${{ secrets.SCHEDULER_RECIPIENT_EMAIL }}
+          SCHEDULER_RECIPIENT_NAME: ${{ secrets.SCHEDULER_RECIPIENT_NAME }}
+          SCHEDULER_WEEKS: '3'
+          SCHEDULER_MAX_REVIEWS: '200'
+        run: python -m scheduler.run

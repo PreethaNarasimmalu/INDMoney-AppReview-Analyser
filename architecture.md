@@ -183,6 +183,43 @@ ACTION IDEAS
 
 ---
 
+## Scheduler — GitHub Actions Weekly Trigger
+
+**Goal:** Run the full pipeline automatically every Monday and send the pulse email directly to a fixed recipient — no human needed.
+
+### Trigger
+- **Automatic:** GitHub Actions cron `0 9 * * 1` (Monday 09:00 UTC)
+- **Manual:** `workflow_dispatch` button in the GitHub Actions UI for ad-hoc runs
+
+### Components
+
+#### scheduler/config.py
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SCHEDULER_WEEKS` | 3 | Lookback window — tight enough for weekly cadence |
+| `SCHEDULER_MAX_REVIEWS` | 200 | Review cap — keeps LLM token costs low for unattended runs |
+| `SCHEDULER_RECIPIENT_EMAIL` | *(required)* | Fixed recipient; fails fast with exit code 1 if unset |
+| `SCHEDULER_RECIPIENT_NAME` | "" | Display name in the To: header |
+
+#### scheduler/run.py
+1. Validates `SCHEDULER_RECIPIENT_EMAIL` is set — exits with code 1 if missing
+2. Calls `run_pipeline(weeks, max_reviews, on_progress)` — Phases 1–3
+3. Calls `phase4.composer.compose()` with the pulse markdown
+4. Calls `phase4.sender.send_email()` — **direct SMTP send**, not a draft
+
+#### .github/workflows/weekly_pulse.yml
+- Checks out repo, installs `requirements.txt`, runs `python -m scheduler.run`
+- All secrets injected from GitHub repo settings: `GROQ_API_KEY`, `GEMINI_API_KEY`, `GMAIL_ADDRESS`, `GMAIL_APP_PASSWORD`, `SCHEDULER_RECIPIENT_EMAIL`, `SCHEDULER_RECIPIENT_NAME`
+
+### Key difference from the UI email
+The Streamlit UI's "Send Email" card is a **one-off manual send** to whoever the user types in at that moment.
+The scheduler is an **automated send** to a fixed recipient configured in GitHub secrets — runs entirely without human interaction.
+
+**IN:** GitHub secrets (API keys, Gmail credentials, recipient)
+**OUT:** Weekly pulse email delivered to `SCHEDULER_RECIPIENT_EMAIL` every Monday
+
+---
+
 ## Phase 6 — React + FastAPI (Built Later)
 
 **Goal:** Production-grade UI on top of the same pipeline core.
@@ -375,5 +412,5 @@ MAX_THEMES=4
 3. Phase 3 — `pipeline/generation/` (Gemini)
 4. Phase 4 — `pipeline/email/`
 5. Phase 5 — Streamlit UI
-6. Scheduler (weekly cron)
+6. Scheduler — `scheduler/` + `.github/workflows/weekly_pulse.yml` ✅
 7. Phase 6 — React + FastAPI

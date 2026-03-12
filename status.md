@@ -9,12 +9,22 @@
 | Phase 3 | Note Generation (Gemini) | ✅ Complete |
 | Phase 4 | Email Draft (Gmail IMAP) | ✅ Complete |
 | Phase 5 | Streamlit UI | ✅ Complete |
-| Scheduler | Weekly cron trigger | ⏳ Pending |
+| Scheduler | Weekly cron trigger (GitHub Actions) | ✅ Complete |
 | Phase 6 | React + FastAPI | ⏳ Pending |
 
 ---
 
 ## Decision Log
+
+### 2026-03-12 (Scheduler — GitHub Actions weekly trigger)
+- Created `scheduler/` folder as a standalone module (not Phase 6, which is reserved for React+FastAPI)
+- `scheduler/config.py`: reads `SCHEDULER_WEEKS` (default 3), `SCHEDULER_MAX_REVIEWS` (default 200), `SCHEDULER_RECIPIENT_EMAIL`, `SCHEDULER_RECIPIENT_NAME` from env
+- `scheduler/run.py`: entry point — calls `run_pipeline()`, composes email via `phase4.composer`, sends directly via `phase4.sender.send_email()` (SMTP, not draft); exits with code 1 if `SCHEDULER_RECIPIENT_EMAIL` is not set
+- `.github/workflows/weekly_pulse.yml`: cron `0 9 * * 1` (Monday 09:00 UTC) + `workflow_dispatch` for manual runs; all secrets injected from GitHub repo secrets
+- `.env.example`: added `SCHEDULER_*` vars documentation
+- `pytest.ini`: added `scheduler/tests` to testpaths
+- 18 new tests in `scheduler/tests/test_run.py` — all pass
+- All 365 tests pass
 
 ### 2026-03-12 (Phase 3 — "What's Working" section added)
 - Extended LLM Call 4 prompt to return both `action_ideas` and `whats_working` in a single Gemini call — no extra API request
