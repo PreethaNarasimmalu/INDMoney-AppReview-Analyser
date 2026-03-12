@@ -6,7 +6,7 @@
 |-------|-------------|--------|
 | Phase 1 | Data Ingestion (scraper + PII scrubber + SQLite) | ✅ Complete |
 | Phase 2 | Theme Grouping (Groq) | ✅ Complete |
-| Phase 3 | Note Generation (Gemini) | ⏳ Pending |
+| Phase 3 | Note Generation (Gemini) | ✅ Complete |
 | Phase 4 | Email Draft (Gmail SMTP) | ⏳ Pending |
 | Phase 5 | Streamlit UI | ⏳ Pending |
 | Scheduler | Weekly cron trigger | ⏳ Pending |
@@ -28,6 +28,17 @@
 - Confirmed Phase 1 has NO LLM — pure scraping + PII scrub + storage
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
+
+### 2026-03-12 (Phase 3 complete)
+- Implemented `llm_client/gemini_client.py`: full Gemini wrapper (chat + retry with exponential backoff + JSON parse), replacing placeholder
+- Created `phase3/models.py`: `ThemeSummary` (theme_id, label, summary, representative_quote, quote_rating, quote_platform), `PulseNote` (week_label, theme_summaries, action_ideas)
+- Created `phase3/config.py`: `GEMINI_MODEL = "gemini-1.5-flash"`, `TOP_N_THEMES = 3`
+- Created `phase3/note_generator.py`: LLM Call 3 (`generate_summaries`) — single Gemini call for top-3 themes, returns summary + verbatim quote each; LLM Call 4 (`generate_action_ideas`) — 3 concrete recommendations; `generate_pulse` orchestrator loads from DB and returns a full `PulseNote`
+- Created `phase3/assembler.py`: pure formatting (no LLM) — renders `PulseNote` to fixed Markdown template and writes `output/weekly_pulse.md`
+- Added `google-generativeai>=0.7.0` to `requirements.txt`
+- Added `phase3/tests` to `pytest.ini` testpaths
+- Added 60 new tests across `test_models`, `test_note_generator`, `test_assembler`
+- All 223 tests pass (phase1 + phase2 + phase3)
 
 ### 2026-03-12 (Phase 2 complete)
 - Created `llm_client/`: `groq_client.py` (chat + retry + JSON parse), `gemini_client.py` (placeholder), `router.py`
