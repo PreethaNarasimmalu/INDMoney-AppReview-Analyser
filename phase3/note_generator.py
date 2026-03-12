@@ -113,18 +113,22 @@ def generate_summaries(
         )
 
     summaries = []
-    for t in raw_themes:
-        # Build a label lookup from the input themes
-        label = next(
-            (th["label"] for th in top_themes if th["id"] == int(t.get("theme_id", 0))),
-            str(t.get("theme_id", "?")),
-        )
+    for i, t in enumerate(raw_themes):
+        # Use positional match first (Gemini preserves input order),
+        # fall back to id-based lookup if counts differ
+        if i < len(top_themes):
+            source_theme = top_themes[i]
+        else:
+            source_theme = next(
+                (th for th in top_themes if th["id"] == int(t.get("theme_id", 0))),
+                top_themes[0],
+            )
         rating = int(t.get("quote_rating", 5))
         rating = max(1, min(5, rating))  # clamp to 1-5
 
         summaries.append(ThemeSummary(
-            theme_id=int(t["theme_id"]),
-            label=label,
+            theme_id=source_theme["id"],
+            label=source_theme["label"],
             summary=str(t["summary"]).strip(),
             representative_quote=str(t["representative_quote"]).strip(),
             quote_rating=rating,
