@@ -163,16 +163,16 @@ Respond with ONLY valid JSON in this exact structure:
     "Action 3: <specific recommendation>"
   ],
   "whats_working": [
-    "Working 1: <feature or experience users love>",
-    "Working 2: <feature or experience users love>",
-    "Working 3: <feature or experience users love>"
+    "<Short Title>: <one sentence describing what users love>",
+    "<Short Title>: <one sentence describing what users love>",
+    "<Short Title>: <one sentence describing what users love>"
   ]
 }}
 
 Rules:
 - Exactly 3 action ideas and exactly 3 whats_working items
 - Each action must start with "Action N: "
-- Each working item must start with "Working N: "
+- Each whats_working item must be in the format "Short Title: description" where Short Title is 2-4 words
 - Do not include any text outside the JSON\
 """
 

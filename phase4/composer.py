@@ -291,11 +291,20 @@ def _build_working_html(lines: list[str]) -> str:
     for line in lines:
         m = re.match(r"^(\d+)\.\s+(.+)$", line)
         if m:
-            num, text = m.group(1), _escape_html(m.group(2))
+            num = m.group(1)
+            rest = m.group(2)
+            # Parse "Short Title: description" format
+            colon_m = re.match(r"^(.+?):\s+(.+)$", rest)
+            if colon_m:
+                title = _escape_html(colon_m.group(1))
+                desc = _escape_html(colon_m.group(2))
+                text_html = f'<strong style="color:#7e22ce;">{title}:</strong> {desc}'
+            else:
+                text_html = _escape_html(rest)
             items.append(
                 f'<div class="working-card">'
                 f'<div class="working-num">{num}.</div>'
-                f'<div class="working-text">{text}</div>'
+                f'<div class="working-text">{text_html}</div>'
                 f'</div>'
             )
     if not items:
