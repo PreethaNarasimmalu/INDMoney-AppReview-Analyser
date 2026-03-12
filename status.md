@@ -7,7 +7,7 @@
 | Phase 1 | Data Ingestion (scraper + PII scrubber + SQLite) | ✅ Complete |
 | Phase 2 | Theme Grouping (Groq) | ✅ Complete |
 | Phase 3 | Note Generation (Gemini) | ✅ Complete |
-| Phase 4 | Email Draft (Gmail SMTP) | ⏳ Pending |
+| Phase 4 | Email Draft (Gmail IMAP) | ✅ Complete |
 | Phase 5 | Streamlit UI | ⏳ Pending |
 | Scheduler | Weekly cron trigger | ⏳ Pending |
 | Phase 6 | React + FastAPI | ⏳ Pending |
@@ -28,6 +28,15 @@
 - Confirmed Phase 1 has NO LLM — pure scraping + PII scrub + storage
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
+
+### 2026-03-12 (Phase 4 complete)
+- Created `phase4/config.py`: IMAP host/port, Drafts folder, email subject prefix
+- Created `phase4/composer.py`: `compose()` builds `EmailMessage` with plain-text + HTML parts; `_escape_html()` XSS-safe HTML wrapper using `<pre>` tag
+- Created `phase4/sender.py`: `create_draft()` uploads draft via IMAP APPEND to `[Gmail]/Drafts`; `_get_credentials()` loads `GMAIL_ADDRESS` + `GMAIL_APP_PASSWORD` from env
+- No SMTP send — creates a Gmail Draft only (safe, reviewable before sending)
+- Added `phase4/tests` to `pytest.ini` testpaths
+- Added 41 tests across `test_composer.py` and `test_sender.py` — all mocked, no real IMAP calls
+- All 304 tests pass (phase1 + phase2 + phase3 + phase4)
 
 ### 2026-03-12 (Phase 2 filter added)
 - Created `phase2/review_filter.py`: filters low-signal reviews before any LLM call
