@@ -14,20 +14,20 @@ App Store Reviews → Ingestion → Theme Grouping (Groq) → Weekly Note Genera
 
 ### Components
 
-#### 1.1 Review Fetcher (`pipeline/ingestion/scraper.py`)
+#### 1.1 Review Fetcher (`phase1/scraper.py`)
 - Source: Google Play Store via `google-play-scraper`
 - Fields: `rating`, `title`, `review_text`, `date`, `platform`
 - Filter: reviews within configured date window (default 8 weeks)
 - Stop condition: date cutoff OR count cap (default 1000), whichever comes first
 - Output: list of raw review objects
 
-#### 1.2 PII Scrubber (`pipeline/ingestion/pii_scrubber.py`)
+#### 1.2 PII Scrubber (`phase1/pii_scrubber.py`)
 - Runs immediately after fetch, before any storage or LLM call
 - Strips: names, emails, phone numbers, usernames, device IDs (regex + spaCy NER)
 - Replaces with: `[REDACTED]`
 - **Hard gate — no review passes through without scrubbing**
 
-#### 1.3 Review Store (`pipeline/storage/review_store.py`)
+#### 1.3 Review Store (`phase1/review_store.py`)
 - SQLite: `data/reviews.db`
 - Schema: `id, platform, rating, title, clean_text, date, week_label`
 - Deduplicated by review ID to support re-runs
@@ -43,13 +43,13 @@ App Store Reviews → Ingestion → Theme Grouping (Groq) → Weekly Note Genera
 
 ### Components
 
-#### 2.1 Theme Discovery — LLM Call 1 (`pipeline/analysis/theme_discovery.py`)
+#### 2.1 Theme Discovery — LLM Call 1 (`phase2/theme_discovery.py`)
 - Input: all `clean_text` from the date window, batched to fit context limits
 - Prompt: read all reviews → return exactly 3–5 distinct theme labels with short descriptions
 - Output: `[{ "theme_id": 1, "label": "...", "description": "..." }, ...]`
 - Model: Groq (e.g., `llama3-70b-8192`)
 
-#### 2.2 Review Classifier — LLM Call 2 (`pipeline/analysis/classifier.py`)
+#### 2.2 Review Classifier — LLM Call 2 (`phase2/classifier.py`)
 - Input: each review + theme list from 2.1
 - Prompt: assign this review to exactly one theme
 - Batched in groups of N reviews per API call (rate limit management)
@@ -71,18 +71,18 @@ App Store Reviews → Ingestion → Theme Grouping (Groq) → Weekly Note Genera
 
 ### Components
 
-#### 3.1 Theme Summariser + Quote Picker — LLM Call 3 (`pipeline/generation/note_generator.py`)
+#### 3.1 Theme Summariser + Quote Picker — LLM Call 3 (`phase3/note_generator.py`)
 - For each of the top 3 themes (ranked by review count):
   - Summarise in 2–3 sentences
   - Select the single most representative user quote (verbatim, already PII-free)
 - Output: `{ theme_label, summary, representative_quote } × 3`
 
-#### 3.2 Action Idea Generator — LLM Call 4 (`pipeline/generation/note_generator.py`)
+#### 3.2 Action Idea Generator — LLM Call 4 (`phase3/note_generator.py`)
 - Input: 3 theme summaries
 - Prompt: given these user pain points, propose 3 concrete actionable product/support recommendations
 - Output: `["Action 1: ...", "Action 2: ...", "Action 3: ..."]`
 
-#### 3.3 Note Assembler (`pipeline/generation/assembler.py`)
+#### 3.3 Note Assembler (`phase3/assembler.py`)
 - Pure formatting — **no LLM call**
 - Combines 3.1 + 3.2 into fixed Markdown template → `output/weekly_pulse.md`
 
@@ -116,12 +116,12 @@ ACTION IDEAS
 
 ### Components
 
-#### 4.1 Email Composer (`pipeline/email/composer.py`)
+#### 4.1 Email Composer (`phase4/composer.py`)
 - Wraps `weekly_pulse.md` into HTML email body (plain text fallback)
 - Subject: `INDMoney App Review Pulse — Week of [DATE]`
 - Recipient: entered inline in UI at send time — never hardcoded
 
-#### 4.2 Email Sender (`pipeline/email/sender.py`)
+#### 4.2 Email Sender (`phase4/sender.py`)
 - Transport: Gmail SMTP via App Password
 - Credentials: loaded from `.env` — never in source code
 - Creates draft in Gmail Drafts folder for human review before sending
@@ -144,11 +144,11 @@ ACTION IDEAS
 - Download Report button (`.md` export)
 - Send Email form (recipient name + email entered inline → Confirm & Send)
 
-### Reviews Page (`streamlit_app/pages/1_Reviews.py`)
+### Reviews Page (`phase5/pages/1_Reviews.py`)
 - Filterable table: platform, rating, theme, date range
 - No PII visible (scrubbed at ingestion)
 
-### Themes Page (`streamlit_app/pages/2_Themes.py`)
+### Themes Page (`phase5/pages/2_Themes.py`)
 - Theme cards: label, description, review count, average rating
 - Expandable to show all reviews under that theme
 
@@ -255,41 +255,52 @@ Swapping any call to a different LLM = one-line config change.
 
 ```
 INDMoney-AppReview-Analyser/
-├── pipeline/
-│   ├── ingestion/
-│   │   ├── scraper.py            # google-play-scraper
-│   │   └── pii_scrubber.py       # PII removal (hard gate before storage)
-│   ├── storage/
-│   │   └── review_store.py       # SQLite helpers
-│   ├── analysis/
-│   │   ├── theme_discovery.py    # Groq LLM Call 1
-│   │   └── classifier.py         # Groq LLM Call 2 (batched)
-│   ├── generation/
-│   │   ├── note_generator.py     # Gemini LLM Calls 3 & 4
-│   │   └── assembler.py          # pure formatting, no LLM
-│   └── email/
-│       ├── composer.py           # HTML email builder
-│       └── sender.py             # Gmail SMTP send
-├── llm_client/
-│   ├── groq_client.py            # Groq API wrapper (retries, rate limits)
-│   ├── gemini_client.py          # Gemini API wrapper (retries, rate limits)
-│   └── router.py                 # routes each call to correct LLM
-├── streamlit_app/
+├── phase1/                       # Data Ingestion (No LLM)
+│   ├── scraper.py                # google-play-scraper
+│   ├── pii_scrubber.py           # PII removal (hard gate before storage)
+│   ├── review_store.py           # SQLite helpers
+│   ├── config.py                 # defaults: app_id, weeks, max_reviews
+│   ├── models.py                 # Review, FetchResult dataclasses
+│   └── tests/
+├── phase2/                       # Theme Grouping (Groq)
+│   ├── theme_discovery.py        # Groq LLM Call 1
+│   ├── classifier.py             # Groq LLM Call 2 (batched)
+│   ├── validator.py              # merge themes with < 2 reviews
+│   ├── config.py
+│   ├── models.py                 # Theme, ThemeList dataclasses
+│   └── tests/
+├── phase3/                       # Note Generation (Gemini)
+│   ├── note_generator.py         # Gemini LLM Calls 3 & 4
+│   ├── assembler.py              # pure formatting, no LLM → weekly_pulse.md
+│   ├── config.py
+│   ├── models.py
+│   └── tests/
+├── phase4/                       # Email Draft
+│   ├── composer.py               # HTML email builder
+│   ├── sender.py                 # Gmail SMTP send
+│   ├── config.py
+│   └── tests/
+├── phase5/                       # Streamlit UI
 │   ├── app.py                    # Dashboard (main page)
 │   └── pages/
 │       ├── 1_Reviews.py
 │       └── 2_Themes.py
-├── api/                          # Phase 6 (later)
-│   └── main.py
-├── frontend/                     # Phase 6 (later)
-│   └── src/
+├── phase6/                       # React + FastAPI (later)
+│   ├── api/
+│   │   └── main.py
+│   └── frontend/
+│       └── src/
+├── llm_client/                   # Shared LLM wrapper
+│   ├── groq_client.py            # Groq API wrapper (retries, rate limits)
+│   ├── gemini_client.py          # Gemini API wrapper (retries, rate limits)
+│   └── router.py                 # routes each call to correct LLM
 ├── data/
 │   └── reviews.db                # gitignored
 ├── output/
 │   └── weekly_pulse.md           # gitignored
 ├── .env.example
 ├── requirements.txt
-├── main.py                       # headless CLI runner
+├── main.py                       # headless CLI runner (orchestrates all phases)
 ├── architecture.md               # this file
 └── status.md                     # decision log and build status
 ```
