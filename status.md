@@ -29,6 +29,17 @@
 - Architecture documented in `architecture.md`
 - Existing `phase1/` and `phase2/` code does NOT match architecture — needs to be rebuilt from scratch
 
+### 2026-03-12 (Phase 2 filter added)
+- Created `phase2/review_filter.py`: filters low-signal reviews before any LLM call
+  - Too short (< 5 words)
+  - Low signal (< 40% alphabetic chars — catches emoji-only, number spam)
+  - All-caps spam (> 80% uppercase letters)
+  - Exact duplicates (case-insensitive, whitespace-normalised)
+- Returns `(kept_reviews, stats)` with per-filter removal counts
+- Updated `phase2/config.py` with `MIN_WORD_COUNT`, `MIN_ALPHA_RATIO`, `MAX_UPPERCASE_RATIO`
+- Added 40 new tests in `test_review_filter.py`
+- All 263 tests pass
+
 ### 2026-03-12 (Phase 3 complete)
 - Implemented `llm_client/gemini_client.py`: full Gemini wrapper (chat + retry with exponential backoff + JSON parse), replacing placeholder
 - Created `phase3/models.py`: `ThemeSummary` (theme_id, label, summary, representative_quote, quote_rating, quote_platform), `PulseNote` (week_label, theme_summaries, action_ideas)
