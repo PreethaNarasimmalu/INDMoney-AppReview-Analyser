@@ -22,6 +22,9 @@ TOP THEMES
 USER VOICES
 {user_voices_block}
 
+WHAT'S WORKING
+{whats_working_block}
+
 ACTION IDEAS
 {action_ideas_block}
 """
@@ -53,6 +56,12 @@ def assemble(note: PulseNote, output_path: Path | None = None) -> str:
         )
     user_voices_block = "\n".join(voices_lines)
 
+    # WHAT'S WORKING block
+    working_lines = []
+    for i, item in enumerate(note.whats_working, 1):
+        working_lines.append(f"  {i}. {item}")
+    whats_working_block = "\n".join(working_lines)
+
     # ACTION IDEAS block
     action_lines = []
     for i, idea in enumerate(note.action_ideas, 1):
@@ -63,6 +72,7 @@ def assemble(note: PulseNote, output_path: Path | None = None) -> str:
         week_label=note.week_label,
         top_themes_block=top_themes_block,
         user_voices_block=user_voices_block,
+        whats_working_block=whats_working_block,
         action_ideas_block=action_ideas_block,
     )
 

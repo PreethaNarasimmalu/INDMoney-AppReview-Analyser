@@ -26,6 +26,7 @@ def _make_note() -> PulseNote:
         week_label="Week of 2026-03-09",
         theme_summaries=[_make_summary(1), _make_summary(2, "App Speed"), _make_summary(3, "KYC")],
         action_ideas=["Action 1: Fix login", "Action 2: Speed up app", "Action 3: Improve KYC"],
+        whats_working=["Working 1: Portfolio UI", "Working 2: US stocks", "Working 3: Fund picks"],
     )
 
 
@@ -123,6 +124,7 @@ class TestPulseNote:
         assert note.week_label == "Week of 2026-03-09"
         assert len(note.theme_summaries) == 3
         assert len(note.action_ideas) == 3
+        assert len(note.whats_working) == 3
 
     def test_empty_week_label_raises(self):
         with pytest.raises(ValueError, match="week_label"):
@@ -136,11 +138,12 @@ class TestPulseNote:
         note = PulseNote(week_label="Week of 2026-03-09")
         assert note.theme_summaries == []
         assert note.action_ideas == []
+        assert note.whats_working == []
 
     def test_to_dict_keys(self):
         note = _make_note()
         d = note.to_dict()
-        assert set(d.keys()) == {"week_label", "theme_summaries", "action_ideas"}
+        assert set(d.keys()) == {"week_label", "theme_summaries", "action_ideas", "whats_working"}
 
     def test_to_dict_theme_summaries_serialised(self):
         note = _make_note()
@@ -152,3 +155,8 @@ class TestPulseNote:
         note = _make_note()
         d = note.to_dict()
         assert d["action_ideas"][0] == "Action 1: Fix login"
+
+    def test_to_dict_whats_working_serialised(self):
+        note = _make_note()
+        d = note.to_dict()
+        assert d["whats_working"][0] == "Working 1: Portfolio UI"

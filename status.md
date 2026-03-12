@@ -16,6 +16,14 @@
 
 ## Decision Log
 
+### 2026-03-12 (Phase 3 — "What's Working" section added)
+- Extended LLM Call 4 prompt to return both `action_ideas` and `whats_working` in a single Gemini call — no extra API request
+- `generate_action_ideas()` now returns `tuple[list[str], list[str]]`; `generate_pulse()` unpacks and passes `whats_working` to `PulseNote`
+- Added `whats_working: list[str]` field to `PulseNote` (default empty list for backwards compatibility)
+- Assembler template gains `WHAT'S WORKING` section between `USER VOICES` and `ACTION IDEAS`
+- Updated `architecture.md`: Phase 3 template diagram and LLM call table reflect new section
+- All 347 tests pass (7 new tests added across test_models, test_note_generator, test_assembler)
+
 ### 2026-03-12
 - Confirmed data source: Google Play Store only (`in.indwealth`), no credentials needed
 - Confirmed LLM split: Groq for Phase 2 (calls 1 & 2), Gemini for Phase 3 (calls 3 & 4)

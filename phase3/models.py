@@ -40,6 +40,7 @@ class PulseNote:
     week_label: str                          # e.g. "Week of 2026-03-09"
     theme_summaries: list[ThemeSummary] = field(default_factory=list)
     action_ideas: list[str] = field(default_factory=list)
+    whats_working: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.week_label or not self.week_label.strip():
@@ -50,4 +51,5 @@ class PulseNote:
             "week_label": self.week_label,
             "theme_summaries": [t.to_dict() for t in self.theme_summaries],
             "action_ideas": self.action_ideas,
+            "whats_working": self.whats_working,
         }

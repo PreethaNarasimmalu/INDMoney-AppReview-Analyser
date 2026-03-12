@@ -67,7 +67,12 @@ def _valid_action_json() -> dict:
             "Action 1: Fix the login flow",
             "Action 2: Improve app speed",
             "Action 3: Streamline KYC",
-        ]
+        ],
+        "whats_working": [
+            "Working 1: Portfolio overview is clean and fast",
+            "Working 2: US stocks buying experience is smooth",
+            "Working 3: Fund recommendations are helpful",
+        ],
     }
 
 
@@ -274,27 +279,66 @@ def _make_summaries(n: int = 3) -> list[ThemeSummary]:
 
 
 class TestGenerateActionIdeasHappyPath:
-    def test_returns_list_of_strings(self):
+    def test_returns_tuple(self):
         with patch(PATCH_CHAT, return_value="{}"), \
              patch(PATCH_PARSE, return_value=_valid_action_json()):
             result = generate_action_ideas(_make_summaries(3), MagicMock())
-        assert isinstance(result, list)
-        assert all(isinstance(a, str) for a in result)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
 
-    def test_returns_exactly_3(self):
+    def test_action_ideas_are_strings(self):
         with patch(PATCH_CHAT, return_value="{}"), \
              patch(PATCH_PARSE, return_value=_valid_action_json()):
-            result = generate_action_ideas(_make_summaries(3), MagicMock())
-        assert len(result) == 3
+            ideas, _ = generate_action_ideas(_make_summaries(3), MagicMock())
+        assert isinstance(ideas, list)
+        assert all(isinstance(a, str) for a in ideas)
+
+    def test_whats_working_are_strings(self):
+        with patch(PATCH_CHAT, return_value="{}"), \
+             patch(PATCH_PARSE, return_value=_valid_action_json()):
+            _, working = generate_action_ideas(_make_summaries(3), MagicMock())
+        assert isinstance(working, list)
+        assert all(isinstance(w, str) for w in working)
+
+    def test_returns_exactly_3_action_ideas(self):
+        with patch(PATCH_CHAT, return_value="{}"), \
+             patch(PATCH_PARSE, return_value=_valid_action_json()):
+            ideas, _ = generate_action_ideas(_make_summaries(3), MagicMock())
+        assert len(ideas) == 3
+
+    def test_returns_exactly_3_whats_working(self):
+        with patch(PATCH_CHAT, return_value="{}"), \
+             patch(PATCH_PARSE, return_value=_valid_action_json()):
+            _, working = generate_action_ideas(_make_summaries(3), MagicMock())
+        assert len(working) == 3
 
     def test_action_text_parsed(self):
         with patch(PATCH_CHAT, return_value="{}"), \
              patch(PATCH_PARSE, return_value=_valid_action_json()):
-            result = generate_action_ideas(_make_summaries(3), MagicMock())
-        assert result[0] == "Action 1: Fix the login flow"
+            ideas, _ = generate_action_ideas(_make_summaries(3), MagicMock())
+        assert ideas[0] == "Action 1: Fix the login flow"
 
-    def test_wrong_count_raises(self):
-        bad_json = {"action_ideas": ["Only one action"]}
+    def test_whats_working_text_parsed(self):
+        with patch(PATCH_CHAT, return_value="{}"), \
+             patch(PATCH_PARSE, return_value=_valid_action_json()):
+            _, working = generate_action_ideas(_make_summaries(3), MagicMock())
+        assert working[0] == "Working 1: Portfolio overview is clean and fast"
+
+    def test_wrong_action_count_raises(self):
+        bad_json = {
+            "action_ideas": ["Only one action"],
+            "whats_working": ["W1", "W2", "W3"],
+        }
+        with patch(PATCH_CHAT, return_value="{}"), \
+             patch(PATCH_PARSE, return_value=bad_json):
+            with pytest.raises(ValueError, match="3"):
+                generate_action_ideas(_make_summaries(3), MagicMock())
+
+    def test_wrong_working_count_raises(self):
+        bad_json = {
+            "action_ideas": ["Action 1: A", "Action 2: B", "Action 3: C"],
+            "whats_working": ["Only one"],
+        }
         with patch(PATCH_CHAT, return_value="{}"), \
              patch(PATCH_PARSE, return_value=bad_json):
             with pytest.raises(ValueError, match="3"):

@@ -148,9 +148,12 @@ Based on this week's top user feedback themes:
 
 {summaries_block}
 
-Propose exactly 3 concrete, actionable product or support recommendations \
+1. Propose exactly 3 concrete, actionable product or support recommendations \
 that address these user pain points. Each action should be specific and \
 implementable.
+
+2. Also identify exactly 3 things users are genuinely praising — features or \
+experiences that are working well and should be preserved or amplified.
 
 Respond with ONLY valid JSON in this exact structure:
 {{
@@ -158,26 +161,35 @@ Respond with ONLY valid JSON in this exact structure:
     "Action 1: <specific recommendation>",
     "Action 2: <specific recommendation>",
     "Action 3: <specific recommendation>"
+  ],
+  "whats_working": [
+    "Working 1: <feature or experience users love>",
+    "Working 2: <feature or experience users love>",
+    "Working 3: <feature or experience users love>"
   ]
 }}
 
 Rules:
-- Exactly 3 action ideas
-- Each must start with "Action N: "
+- Exactly 3 action ideas and exactly 3 whats_working items
+- Each action must start with "Action N: "
+- Each working item must start with "Working N: "
 - Do not include any text outside the JSON\
 """
 
 
-def generate_action_ideas(summaries: list[ThemeSummary], genai) -> list[str]:
+def generate_action_ideas(
+    summaries: list[ThemeSummary], genai
+) -> tuple[list[str], list[str]]:
     """
-    LLM Call 4: ask Gemini for 3 actionable recommendations based on theme summaries.
+    LLM Call 4: ask Gemini for 3 actionable recommendations and 3 "what's working"
+    highlights based on theme summaries.
 
     Args:
         summaries: list of ThemeSummary objects (typically 3)
         genai:     configured Gemini genai module
 
     Returns:
-        list of 3 action idea strings
+        (action_ideas, whats_working) — each a list of 3 strings
     """
     if not summaries:
         raise ValueError("summaries is empty — nothing to generate action ideas from")
@@ -194,7 +206,15 @@ def generate_action_ideas(summaries: list[ThemeSummary], genai) -> list[str]:
     ideas = data.get("action_ideas", [])
     if len(ideas) != 3:
         raise ValueError(f"Expected 3 action ideas from Gemini, got {len(ideas)}")
-    return [str(idea).strip() for idea in ideas]
+
+    working = data.get("whats_working", [])
+    if len(working) != 3:
+        raise ValueError(f"Expected 3 whats_working items from Gemini, got {len(working)}")
+
+    return (
+        [str(idea).strip() for idea in ideas],
+        [str(item).strip() for item in working],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -229,7 +249,7 @@ def generate_pulse(conn: sqlite3.Connection, genai, weeks: int = 8) -> PulseNote
     summaries = generate_summaries(top_themes, reviews_by_theme, genai)
 
     # LLM Call 4
-    action_ideas = generate_action_ideas(summaries, genai)
+    action_ideas, whats_working = generate_action_ideas(summaries, genai)
 
     # Week label: Monday of the current week
     today = datetime.now(timezone.utc).date()
@@ -240,4 +260,5 @@ def generate_pulse(conn: sqlite3.Connection, genai, weeks: int = 8) -> PulseNote
         week_label=week_label,
         theme_summaries=summaries,
         action_ideas=action_ideas,
+        whats_working=whats_working,
     )

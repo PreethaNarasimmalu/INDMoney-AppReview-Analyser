@@ -91,10 +91,10 @@ App Store Reviews → Ingestion → Theme Grouping (Groq) → Weekly Note Genera
   - Select the single most representative user quote (verbatim, already PII-free)
 - Output: `{ theme_label, summary, representative_quote } × 3`
 
-#### 3.2 Action Idea Generator — LLM Call 4 (`phase3/note_generator.py`)
+#### 3.2 Action Idea Generator + What's Working — LLM Call 4 (`phase3/note_generator.py`)
 - Input: 3 theme summaries
-- Prompt: given these user pain points, propose 3 concrete actionable product/support recommendations
-- Output: `["Action 1: ...", "Action 2: ...", "Action 3: ..."]`
+- Prompt: given these themes, propose 3 concrete actionable product/support recommendations **and** identify 3 things users are praising that should be preserved or amplified
+- Output: `(["Action 1: ...", ...], ["Working 1: ...", ...])` — both lists returned from a single Gemini call
 
 #### 3.3 Note Assembler (`phase3/assembler.py`)
 - Pure formatting — **no LLM call**
@@ -112,6 +112,11 @@ USER VOICES
   "[Quote 1]"  — [Platform], [Star Rating]★
   "[Quote 2]"  — ...
   "[Quote 3]"  — ...
+
+WHAT'S WORKING
+  1. [Working 1]
+  2. [Working 2]
+  3. [Working 3]
 
 ACTION IDEAS
   1. [Action]
@@ -208,7 +213,7 @@ GET|PUT /api/settings   — read/write config
 | 1 | Theme Discovery | Groq | All review texts | 3–5 theme labels + descriptions |
 | 2 | Review Classifier | Groq | Each review + theme list (batched) | review_id → theme_id |
 | 3 | Summariser + Quote Picker | Gemini | Reviews grouped by theme | summary + quote × 3 |
-| 4 | Action Idea Generator | Gemini | 3 theme summaries | 3 action recommendations |
+| 4 | Action Idea Generator + What's Working | Gemini | 3 theme summaries | 3 action recommendations + 3 positive highlights |
 
 **Total API requests per run:** `3 + ceil(review_count / batch_size)`
 Example: 200 reviews, batch_size=20 → 13 Groq API requests
@@ -220,10 +225,10 @@ Example: 200 reviews, batch_size=20 → 13 Groq API requests
 ```python
 # llm_client/router.py
 LLM_ROUTING = {
-    "theme_discovery": "groq",
-    "classifier":      "groq",
-    "summariser":      "gemini",
-    "action_ideas":    "gemini",
+    "theme_discovery":            "groq",
+    "classifier":                 "groq",
+    "summariser":                 "gemini",
+    "action_ideas_whats_working": "gemini",
 }
 ```
 

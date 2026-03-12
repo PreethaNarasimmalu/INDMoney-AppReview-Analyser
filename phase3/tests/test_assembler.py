@@ -36,6 +36,11 @@ def _make_note() -> PulseNote:
             "Action 2: Optimise app startup time",
             "Action 3: Streamline KYC verification",
         ],
+        whats_working=[
+            "Working 1: Portfolio overview is praised for clarity",
+            "Working 2: US stocks buying experience is smooth",
+            "Working 3: Fund recommendations are well-received",
+        ],
     )
 
 
@@ -82,10 +87,16 @@ class TestAssembleContent:
         assert "Action 2: Optimise app startup time" in result
         assert "Action 3: Streamline KYC verification" in result
 
+    def test_contains_whats_working(self, tmp_path):
+        result = assemble(_make_note(), output_path=tmp_path / "pulse.md")
+        assert "Working 1: Portfolio overview is praised for clarity" in result
+        assert "Working 2: US stocks buying experience is smooth" in result
+
     def test_section_headers_present(self, tmp_path):
         result = assemble(_make_note(), output_path=tmp_path / "pulse.md")
         assert "TOP THEMES" in result
         assert "USER VOICES" in result
+        assert "WHAT'S WORKING" in result
         assert "ACTION IDEAS" in result
 
     def test_themes_numbered(self, tmp_path):
@@ -136,6 +147,7 @@ class TestAssembleEdgeCases:
         result = assemble(note, output_path=tmp_path / "pulse.md")
         assert "TOP THEMES" in result
         assert "USER VOICES" in result
+        assert "WHAT'S WORKING" in result
         assert "ACTION IDEAS" in result
 
     def test_single_theme_renders(self, tmp_path):
