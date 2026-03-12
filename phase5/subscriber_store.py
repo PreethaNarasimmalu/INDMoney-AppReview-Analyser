@@ -8,8 +8,11 @@ Mirror store:  `subscribers.json` at the repo root — committed to git so
 Every add/remove syncs both stores automatically.
 """
 
+import base64
 import json
+import os
 import sqlite3
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -92,11 +95,60 @@ def remove_subscriber(conn: sqlite3.Connection, email: str) -> bool:
 # JSON mirror — read by GitHub Actions scheduler
 # ---------------------------------------------------------------------------
 
+def _push_to_github(content: str) -> None:
+    """
+    Push subscribers.json to GitHub via API so GitHub Actions can read it.
+
+    Requires env vars:
+      GITHUB_TOKEN — Personal Access Token with contents:write scope
+      GITHUB_REPO  — e.g. "PreethaNarasimmalu/INDMoney-AppReview-Analyser"
+    """
+    token = os.getenv("GITHUB_TOKEN", "")
+    repo  = os.getenv("GITHUB_REPO", "")
+    if not token or not repo:
+        return
+
+    api_url = f"https://api.github.com/repos/{repo}/contents/subscribers.json"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+    }
+
+    # Fetch current SHA (required for update)
+    sha = None
+    try:
+        req = urllib.request.Request(api_url, headers=headers)
+        with urllib.request.urlopen(req) as resp:
+            sha = json.loads(resp.read())["sha"]
+    except Exception:
+        pass
+
+    encoded = base64.b64encode(content.encode()).decode()
+    payload = {"message": "chore: sync subscribers.json", "content": encoded}
+    if sha:
+        payload["sha"] = sha
+
+    put_req = urllib.request.Request(
+        api_url,
+        data=json.dumps(payload).encode(),
+        method="PUT",
+        headers=headers,
+    )
+    with urllib.request.urlopen(put_req):
+        pass
+
+
 def _sync_json(conn: sqlite3.Connection, json_path: Path = JSON_PATH) -> None:
-    """Write current subscribers to subscribers.json (overwrites)."""
+    """Write current subscribers to subscribers.json and push to GitHub if configured."""
     subs = list_subscribers(conn)
     data = [{"email": s.email, "name": s.name} for s in subs]
-    json_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    content = json.dumps(data, indent=2)
+    json_path.write_text(content, encoding="utf-8")
+    try:
+        _push_to_github(content)
+    except Exception:
+        pass  # Never block subscribe/unsubscribe if GitHub push fails
 
 
 def load_from_json(json_path: Path = JSON_PATH) -> list[Subscriber]:

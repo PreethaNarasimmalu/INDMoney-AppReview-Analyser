@@ -334,6 +334,7 @@ Swapping any call to a different LLM = one-line config change.
 - `remove_subscriber(conn, email)` — returns bool
 - Used by both the Streamlit UI (add/remove via browser) and `scheduler/run.py` (load for automated sends)
 - Also used by the Unsubscribe page (`3_Unsubscribe.py`) to process one-click removal from email links
+- `_push_to_github()`: after every `_sync_json()`, pushes `subscribers.json` to GitHub via the API if `GITHUB_TOKEN` + `GITHUB_REPO` env vars are set — enables Streamlit Cloud subscribers to be read by GitHub Actions scheduler automatically
 
 ---
 
