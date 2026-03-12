@@ -19,7 +19,8 @@ from phase2.config import MIN_THEMES, MAX_THEMES, MAX_REVIEWS_FOR_DISCOVERY
 
 def _make_reviews(n: int) -> list[dict]:
     return [
-        {"id": f"id{i}", "date": "2026-01-01", "rating": 4, "clean_text": f"Review text {i}"}
+        {"id": f"id{i}", "date": "2026-01-01", "rating": 4,
+         "clean_text": f"This app review number {i} has enough words to pass the filter"}
         for i in range(n)
     ]
 
@@ -148,7 +149,7 @@ class TestDiscoverThemesReviewCap:
              patch(PATCH_PARSE, return_value=_valid_groq_json(3)):
             discover_themes(reviews, MagicMock())
         prompt_arg = mock_chat.call_args[0][1]
-        assert "Review text 0" in prompt_arg
+        assert "review number 0" in prompt_arg
 
 
 # ---------------------------------------------------------------------------

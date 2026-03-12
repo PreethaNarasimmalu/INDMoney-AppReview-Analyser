@@ -18,6 +18,7 @@ from phase2.config import (
     REVIEW_TEXT_TRUNCATE,
 )
 from phase2.models import ThemeList, ClassifiedReview
+from phase2.review_filter import filter_reviews
 
 _PROMPT_TEMPLATE = """\
 You are classifying app reviews into predefined themes.
@@ -108,6 +109,8 @@ def classify_reviews(
         raise ValueError("reviews list is empty — nothing to classify")
     if not theme_list.themes:
         raise ValueError("theme_list is empty — cannot classify without themes")
+
+    reviews, _ = filter_reviews(reviews)
 
     classified: list[ClassifiedReview] = []
     for i in range(0, len(reviews), CLASSIFIER_BATCH_SIZE):

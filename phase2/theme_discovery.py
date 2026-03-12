@@ -20,6 +20,7 @@ from phase2.config import (
     MAX_REVIEWS_FOR_DISCOVERY,
 )
 from phase2.models import ThemeList
+from phase2.review_filter import filter_reviews
 
 _PROMPT_TEMPLATE = """\
 You are a product analyst for INDMoney, a fintech app used in India.
@@ -63,6 +64,10 @@ def discover_themes(reviews: list[dict], client: Groq) -> ThemeList:
     """
     if not reviews:
         raise ValueError("reviews list is empty — nothing to discover themes from")
+
+    reviews, _ = filter_reviews(reviews)
+    if not reviews:
+        raise ValueError("reviews list is empty after filtering — nothing to discover themes from")
 
     capped = reviews[:MAX_REVIEWS_FOR_DISCOVERY]
     review_text = "\n".join(

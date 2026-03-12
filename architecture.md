@@ -43,6 +43,16 @@ App Store Reviews → Ingestion → Theme Grouping (Groq) → Weekly Note Genera
 
 ### Components
 
+#### 2.0 Review Filter (`phase2/review_filter.py`)
+- Applied once before any LLM call — reduces token usage and improves theme quality
+- Removes:
+  - **Too short** — fewer than 5 words
+  - **Low signal** — < 40% alphabetic chars (emoji-only, number spam)
+  - **All-caps spam** — > 80% uppercase letters
+  - **Exact duplicates** — same text (case-insensitive, whitespace-normalised), keep first
+- Returns filtered list + stats dict (counts per filter reason)
+- Integrated into `classify_reviews` and `discover_themes` — callers get filtered reviews automatically
+
 #### 2.1 Theme Discovery — LLM Call 1 (`phase2/theme_discovery.py`)
 - Input: all `clean_text` from the date window, batched to fit context limits
 - Prompt: read all reviews → return exactly 3–5 distinct theme labels with short descriptions

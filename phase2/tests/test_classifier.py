@@ -28,7 +28,8 @@ def _make_themes(n: int = 3) -> ThemeList:
 
 def _make_reviews(n: int) -> list[dict]:
     return [
-        {"id": f"rev{i}", "date": "2026-01-01", "rating": 4, "clean_text": f"Review {i}"}
+        {"id": f"rev{i}", "date": "2026-01-01", "rating": 4,
+         "clean_text": f"This app review number {i} has enough words to pass the filter"}
         for i in range(n)
     ]
 
