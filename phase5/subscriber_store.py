@@ -51,8 +51,14 @@ def ensure_table(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def add_subscriber(conn: sqlite3.Connection, email: str, name: str = "") -> bool:
-    """Add a subscriber. Returns True if added, False if already exists."""
+def add_subscriber(conn: sqlite3.Connection, email: str, name: str = "") -> tuple[bool, str | None]:
+    """
+    Add a subscriber.
+
+    Returns (True, None) if added and GitHub sync succeeded.
+    Returns (True, error_msg) if added but GitHub sync failed.
+    Returns (False, None) if already exists.
+    """
     ensure_table(conn)
     cur = conn.execute(
         "INSERT OR IGNORE INTO subscribers (email, name) VALUES (?, ?)",
@@ -60,9 +66,9 @@ def add_subscriber(conn: sqlite3.Connection, email: str, name: str = "") -> bool
     )
     conn.commit()
     if cur.rowcount > 0:
-        _sync_json(conn)
-        return True
-    return False
+        sync_error = _sync_json(conn)
+        return True, sync_error
+    return False, None
 
 
 def list_subscribers(conn: sqlite3.Connection) -> list[Subscriber]:
@@ -77,8 +83,14 @@ def list_subscribers(conn: sqlite3.Connection) -> list[Subscriber]:
     ]
 
 
-def remove_subscriber(conn: sqlite3.Connection, email: str) -> bool:
-    """Remove a subscriber. Returns True if removed, False if not found."""
+def remove_subscriber(conn: sqlite3.Connection, email: str) -> tuple[bool, str | None]:
+    """
+    Remove a subscriber.
+
+    Returns (True, None) if removed and GitHub sync succeeded.
+    Returns (True, error_msg) if removed but GitHub sync failed.
+    Returns (False, None) if not found.
+    """
     ensure_table(conn)
     cur = conn.execute(
         "DELETE FROM subscribers WHERE email = ?",
@@ -86,25 +98,40 @@ def remove_subscriber(conn: sqlite3.Connection, email: str) -> bool:
     )
     conn.commit()
     if cur.rowcount > 0:
-        _sync_json(conn)
-        return True
-    return False
+        sync_error = _sync_json(conn)
+        return True, sync_error
+    return False, None
 
 
 # ---------------------------------------------------------------------------
 # JSON mirror — read by GitHub Actions scheduler
 # ---------------------------------------------------------------------------
 
+def _get_github_credentials() -> tuple[str, str]:
+    """Return (GITHUB_TOKEN, GITHUB_REPO) from env vars or Streamlit secrets."""
+    token = os.getenv("GITHUB_TOKEN", "")
+    repo  = os.getenv("GITHUB_REPO", "")
+    if not token or not repo:
+        try:
+            import streamlit as st  # only available when running inside Streamlit
+            token = token or str(st.secrets.get("GITHUB_TOKEN", ""))
+            repo  = repo  or str(st.secrets.get("GITHUB_REPO", ""))
+        except Exception:
+            pass
+    return token, repo
+
+
 def _push_to_github(content: str) -> None:
     """
     Push subscribers.json to GitHub via API so GitHub Actions can read it.
 
-    Requires env vars:
-      GITHUB_TOKEN — Personal Access Token with contents:write scope
-      GITHUB_REPO  — e.g. "PreethaNarasimmalu/INDMoney-AppReview-Analyser"
+    Requires GITHUB_TOKEN (PAT with contents:write) and GITHUB_REPO
+    (e.g. "PreethaNarasimmalu/INDMoney-AppReview-Analyser") — set as
+    Streamlit secrets or environment variables.
+
+    Raises on failure so callers can surface the error.
     """
-    token = os.getenv("GITHUB_TOKEN", "")
-    repo  = os.getenv("GITHUB_REPO", "")
+    token, repo = _get_github_credentials()
     if not token or not repo:
         return
 
@@ -139,16 +166,22 @@ def _push_to_github(content: str) -> None:
         pass
 
 
-def _sync_json(conn: sqlite3.Connection, json_path: Path = JSON_PATH) -> None:
-    """Write current subscribers to subscribers.json and push to GitHub if configured."""
+def _sync_json(conn: sqlite3.Connection, json_path: Path = JSON_PATH) -> str | None:
+    """
+    Write current subscribers to subscribers.json and push to GitHub if configured.
+
+    Returns an error message string if the GitHub push fails, None on success.
+    Local write always succeeds regardless.
+    """
     subs = list_subscribers(conn)
     data = [{"email": s.email, "name": s.name} for s in subs]
     content = json.dumps(data, indent=2)
     json_path.write_text(content, encoding="utf-8")
     try:
         _push_to_github(content)
-    except Exception:
-        pass  # Never block subscribe/unsubscribe if GitHub push fails
+        return None
+    except Exception as exc:
+        return str(exc)  # Caller decides whether to surface this
 
 
 def load_from_json(json_path: Path = JSON_PATH) -> list[Subscriber]:

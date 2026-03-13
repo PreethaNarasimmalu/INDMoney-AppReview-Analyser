@@ -59,7 +59,7 @@ with st.container(border=True):
         try:
             from phase5.subscriber_store import get_connection, remove_subscriber
             conn = get_connection()
-            removed = remove_subscriber(conn, email)
+            removed, _ = remove_subscriber(conn, email)
             conn.close()
 
             if removed:

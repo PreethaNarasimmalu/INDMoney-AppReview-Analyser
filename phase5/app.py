@@ -353,14 +353,24 @@ with st.container(border=True):
             try:
                 from phase5.subscriber_store import get_connection as _sub_conn, add_subscriber
                 _conn = _sub_conn()
-                added = add_subscriber(_conn, sub_email.strip(), sub_name.strip())
+                added, sync_err = add_subscriber(_conn, sub_email.strip(), sub_name.strip())
                 _conn.close()
                 if added:
                     st.session_state["sub_msg"] = ("success", f"**{sub_email.strip()}** subscribed to the weekly pulse!", time.time())
+                    if sync_err:
+                        st.session_state["sub_sync_err"] = sync_err
                 else:
                     st.session_state["sub_msg"] = ("warning", f"**{sub_email.strip()}** is already subscribed.", time.time())
             except Exception as exc:
                 st.session_state["sub_msg"] = ("error", f"Failed to subscribe: {exc}", time.time())
+
+    # GitHub sync error — shown persistently so user can debug
+    if "sub_sync_err" in st.session_state:
+        st.warning(
+            f"Subscribed locally, but GitHub sync failed: `{st.session_state['sub_sync_err']}`\n\n"
+            "Check that **GITHUB_TOKEN** and **GITHUB_REPO** are set correctly in Streamlit secrets.",
+            icon="⚠️",
+        )
 
     # Auto-dismissing feedback message (disappears after 4 seconds)
     if "sub_msg" in st.session_state:
