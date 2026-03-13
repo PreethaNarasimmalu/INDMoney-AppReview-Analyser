@@ -18,6 +18,11 @@
 
 ## Decision Log
 
+### 2026-03-13 (Fix unsubscribe link hidden by Gmail trimming)
+- Moved unsubscribe link from `<div class="footer">` into `<div class="body">` — Gmail trims footer-like content into "..." dots
+- Removed `---` from plain text unsubscribe line — dashes trigger Gmail's "show quoted text" collapse
+- Unsubscribe now always visible without any click to expand
+
 ### 2026-03-13 (Unsubscribe link visibility fix)
 - Added unsubscribe URL to plain text email body — previously only in HTML, so clients rendering plain text had no unsubscribe option
 - Made HTML unsubscribe link colour `#666` (was `#aaa`) so it's visible against the `#f8f9fa` footer background

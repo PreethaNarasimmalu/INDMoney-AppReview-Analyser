@@ -199,9 +199,10 @@ _HTML_WRAPPER = """\
       {voices_section}
       {working_section}
       {actions_section}
+      {unsubscribe_html}
     </div>
     <div class="footer">
-      Auto-generated from Google Play reviews &bull; {week_label}{unsubscribe_html}
+      Auto-generated from Google Play reviews &bull; {week_label}
     </div>
   </div>
 </body>
@@ -345,9 +346,11 @@ def _markdown_to_html(markdown: str, week_label: str, recipient_email: str = "",
     sections = _parse_sections(markdown)
     if include_unsubscribe and recipient_email:
         unsubscribe_html = (
-            f' &bull; <a href="https://indmoney-appreview-analyser.streamlit.app/Unsubscribe'
+            f'<p style="font-size:12px;color:#888;margin:0 0 8px;text-align:center;">'
+            f'<a href="https://indmoney-appreview-analyser.streamlit.app/Unsubscribe'
             f'?email={_escape_html(recipient_email)}"'
-            f' style="color:#666;text-decoration:underline;">Unsubscribe</a>'
+            f' style="color:#666;text-decoration:underline;">Unsubscribe</a> from this weekly pulse'
+            f'</p>'
         )
     else:
         unsubscribe_html = ""
@@ -409,7 +412,7 @@ def compose(
     plain = markdown
     if include_unsubscribe and recipient_email:
         plain += (
-            f"\n\n---\nTo unsubscribe, visit: "
+            f"\n\nTo unsubscribe, visit: "
             f"https://indmoney-appreview-analyser.streamlit.app/Unsubscribe"
             f"?email={recipient_email}"
         )
