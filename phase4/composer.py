@@ -345,9 +345,9 @@ def _markdown_to_html(markdown: str, week_label: str, recipient_email: str = "",
     sections = _parse_sections(markdown)
     if include_unsubscribe and recipient_email:
         unsubscribe_html = (
-            f'<br><a href="https://indmoney-appreview-analyser.streamlit.app/Unsubscribe'
+            f' &bull; <a href="https://indmoney-appreview-analyser.streamlit.app/Unsubscribe'
             f'?email={_escape_html(recipient_email)}"'
-            f' style="color:#aaa;text-decoration:underline;">Unsubscribe</a>'
+            f' style="color:#666;text-decoration:underline;">Unsubscribe</a>'
         )
     else:
         unsubscribe_html = ""
@@ -406,7 +406,14 @@ def compose(
     msg["From"] = sender_address
     msg["To"] = to_header
 
-    msg.set_content(markdown)
+    plain = markdown
+    if include_unsubscribe and recipient_email:
+        plain += (
+            f"\n\n---\nTo unsubscribe, visit: "
+            f"https://indmoney-appreview-analyser.streamlit.app/Unsubscribe"
+            f"?email={recipient_email}"
+        )
+    msg.set_content(plain)
     msg.add_alternative(_markdown_to_html(markdown, week_label, recipient_email, include_unsubscribe), subtype="html")
 
     return msg

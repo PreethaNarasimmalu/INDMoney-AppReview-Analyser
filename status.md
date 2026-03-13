@@ -18,6 +18,10 @@
 
 ## Decision Log
 
+### 2026-03-13 (Unsubscribe link visibility fix)
+- Added unsubscribe URL to plain text email body — previously only in HTML, so clients rendering plain text had no unsubscribe option
+- Made HTML unsubscribe link colour `#666` (was `#aaa`) so it's visible against the `#f8f9fa` footer background
+
 ### 2026-03-13 (Subscribe feedback UX fixes)
 - **Success message was invisible**: `st.rerun()` was firing immediately after `st.success()`, wiping the message before the user could read it — fixed by storing message + timestamp in `st.session_state["sub_msg"]` and displaying it outside the form
 - **"Already subscribed" warning never dismissed**: warning had no auto-dismiss — fixed with same session state pattern
