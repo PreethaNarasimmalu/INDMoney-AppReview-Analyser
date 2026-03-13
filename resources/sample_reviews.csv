@@ -1,0 +1,21 @@
+review_id,date,rating,platform,clean_text,theme_id,theme_label
+r001,2026-03-08,2,Google Play,After the latest update my fingerprint login stopped working completely. Every time I open the app I have to re-enter my MPIN.,1,Login & OTP Issues
+r002,2026-03-07,1,Google Play,OTP is not coming at all. I have been trying to login for 30 minutes. Please fix this issue urgently.,1,Login & OTP Issues
+r003,2026-03-07,3,Google Play,App is good but sometimes the OTP takes too long. Biometric is also not working since last update.,1,Login & OTP Issues
+r004,2026-03-06,2,Google Play,Login failed 3 times today. OTP keeps saying expired even though I enter it immediately.,1,Login & OTP Issues
+r005,2026-03-05,1,Google Play,Cannot login since yesterday. Support not responding. Very disappointed.,1,Login & OTP Issues
+r006,2026-03-08,1,Google Play,My mutual fund portfolio has not refreshed in 3 days. The numbers shown are completely wrong.,2,Portfolio Sync Delays
+r007,2026-03-07,2,Google Play,Portfolio balance is showing old values. My recent SIP investment is not reflected anywhere.,2,Portfolio Sync Delays
+r008,2026-03-06,2,Google Play,Holdings keep showing stale data. I have to uninstall and reinstall to see updated values.,2,Portfolio Sync Delays
+r009,2026-03-05,1,Google Play,The stocks section shows prices from yesterday. Not useful for tracking real investments.,2,Portfolio Sync Delays
+r010,2026-03-04,3,Google Play,App is mostly good but the portfolio sync is slow. Takes 10-15 minutes to show latest NAV.,2,Portfolio Sync Delays
+r011,2026-03-08,3,Google Play,US stocks section is great but my order got stuck in processing for 2 hours. No error no confirmation.,3,US Stocks Experience
+r012,2026-03-07,2,Google Play,Tried to buy Apple shares but the order failed silently. No notification nothing. Money was deducted.,3,US Stocks Experience
+r013,2026-03-06,4,Google Play,Love the US stocks feature. Currency conversion could be more transparent though.,3,US Stocks Experience
+r014,2026-03-05,3,Google Play,US stocks prices are not real-time. By the time I place the order the price has moved significantly.,3,US Stocks Experience
+r015,2026-03-04,2,Google Play,Order for US stocks failed with a generic error. No explanation given. Very confusing.,3,US Stocks Experience
+r016,2026-03-08,5,Google Play,Smart Save is the best feature. I saved 5000 rupees without even thinking about it this month.,1,Login & OTP Issues
+r017,2026-03-07,5,Google Play,The net worth dashboard is amazing. I can see all my investments in one place.,2,Portfolio Sync Delays
+r018,2026-03-06,5,Google Play,Customer support was very helpful. They resolved my issue within minutes via chat.,3,US Stocks Experience
+r019,2026-03-05,4,Google Play,Best investment app in India. The mutual fund recommendations are spot on.,2,Portfolio Sync Delays
+r020,2026-03-04,4,Google Play,Very smooth experience overall. The goal-based savings feature is motivating.,1,Login & OTP Issues
