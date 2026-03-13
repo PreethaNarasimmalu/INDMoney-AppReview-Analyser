@@ -11,6 +11,8 @@ from pathlib import Path
 # Ensure project root is on sys.path regardless of working directory
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import time
+
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -354,10 +356,25 @@ with st.container(border=True):
                 added = add_subscriber(_conn, sub_email.strip(), sub_name.strip())
                 _conn.close()
                 if added:
-                    st.success(f"**{sub_email}** subscribed to the weekly pulse!")
-                    st.rerun()
+                    st.session_state["sub_msg"] = ("success", f"**{sub_email.strip()}** subscribed to the weekly pulse!", time.time())
                 else:
-                    st.warning(f"**{sub_email}** is already subscribed.")
+                    st.session_state["sub_msg"] = ("warning", f"**{sub_email.strip()}** is already subscribed.", time.time())
             except Exception as exc:
-                st.error(f"Failed to subscribe: {exc}")
+                st.session_state["sub_msg"] = ("error", f"Failed to subscribe: {exc}", time.time())
+
+    # Auto-dismissing feedback message (disappears after 4 seconds)
+    if "sub_msg" in st.session_state:
+        msg_type, msg_text, msg_time = st.session_state["sub_msg"]
+        elapsed = time.time() - msg_time
+        if elapsed < 4:
+            if msg_type == "success":
+                st.success(msg_text)
+            elif msg_type == "warning":
+                st.warning(msg_text)
+            else:
+                st.error(msg_text)
+            time.sleep(0.5)
+            st.rerun()
+        else:
+            del st.session_state["sub_msg"]
 

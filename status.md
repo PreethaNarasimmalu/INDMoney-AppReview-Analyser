@@ -18,6 +18,11 @@
 
 ## Decision Log
 
+### 2026-03-13 (Subscribe feedback UX fixes)
+- **Success message was invisible**: `st.rerun()` was firing immediately after `st.success()`, wiping the message before the user could read it — fixed by storing message + timestamp in `st.session_state["sub_msg"]` and displaying it outside the form
+- **"Already subscribed" warning never dismissed**: warning had no auto-dismiss — fixed with same session state pattern
+- Both messages (success + already-subscribed warning + errors) now auto-dismiss after 4 seconds via a 0.5s poll-rerun loop; once expired, `sub_msg` is deleted from session state
+
 ### 2026-03-12 (Streamlit Cloud → GitHub subscriber sync)
 - Added `_push_to_github()` to `phase5/subscriber_store.py`: after every `_sync_json()`, pushes `subscribers.json` to GitHub via the Contents API if `GITHUB_TOKEN` + `GITHUB_REPO` env vars are set
 - Subscribers added/removed on the deployed Streamlit Cloud app now automatically commit `subscribers.json` to the repo — GitHub Actions scheduler reads the latest list without any manual steps
