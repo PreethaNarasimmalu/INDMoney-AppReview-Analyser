@@ -282,7 +282,13 @@ if has_result:
         if st.button("Load latest report", type="secondary"):
             st.session_state["report_expanded"] = not st.session_state.get("report_expanded", False)
         if st.session_state.get("report_expanded"):
-            st.code(result.pulse_markdown, language=None)
+            escaped = result.pulse_markdown.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            st.markdown(
+                f'<div style="height:400px;overflow-y:auto;background:#0e1117;color:#fafafa;'
+                f'font-family:monospace;font-size:13px;padding:12px;border-radius:6px;'
+                f'white-space:pre-wrap;word-break:break-word;">{escaped}</div>',
+                unsafe_allow_html=True,
+            )
 
     # 4. Download card
     with st.container(border=True):
