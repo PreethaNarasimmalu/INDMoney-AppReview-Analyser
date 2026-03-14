@@ -292,7 +292,7 @@ if has_result:
             )
             st.markdown(
                 f'<div style="height:400px;overflow-y:auto;padding:16px 20px;'
-                f'background:#f2fdf4;border:1px solid rgba(40,167,69,0.25);'
+                f'border:1px solid rgba(128,128,128,0.2);'
                 f'border-radius:8px;font-family:inherit;font-size:14px;line-height:1.7;'
                 f'word-break:break-word;">{escaped}</div>',
                 unsafe_allow_html=True,
