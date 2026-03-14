@@ -284,8 +284,8 @@ if has_result:
         if st.session_state.get("report_expanded"):
             escaped = result.pulse_markdown.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             st.markdown(
-                f'<div style="height:400px;overflow-y:auto;background:#0e1117;color:#fafafa;'
-                f'font-family:monospace;font-size:13px;padding:12px;border-radius:6px;'
+                f'<div style="height:400px;overflow-y:auto;padding:16px 20px;border:1px solid rgba(128,128,128,0.25);'
+                f'border-radius:8px;font-family:inherit;font-size:14px;line-height:1.7;'
                 f'white-space:pre-wrap;word-break:break-word;">{escaped}</div>',
                 unsafe_allow_html=True,
             )
