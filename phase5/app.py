@@ -287,7 +287,7 @@ if has_result:
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
-                .replace("\n\n", "<br>")
+                .replace("\n\n", "<br><br>")
                 .replace("\n", "<br>")
             )
             st.markdown(
